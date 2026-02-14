@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Operator Absenteeism</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="topbar">Machine Shop Production Monitoring System</div>
+
+<div class="layout">
+
+    <!-- ============================= -->
+    <!-- SIDEBAR (SAME AS PRODUCTION ENTRY) -->
+    <!-- ============================= -->
+    <div class="sidebar">
+        <div class="menu-section">
+            <div class="menu-title">Transactions</div>
+            <hr>
+            <div class="menu-item" onclick="location.href='/production'">⬅ Back to Production Home</div>
+        </div>
+    </div>
+
+    <!-- ============================= -->
+    <!-- MAIN CONTENT -->
+    <!-- ============================= -->
+    <div class="main-content">
+
+        <h2>🚫 Operator Absenteeism</h2>
+
+        <!-- ============================= -->
+        <!-- MARK OPERATOR AS ABSENT -->
+        <!-- ============================= -->
+        <div class="form-card">
+            <h3>Mark Operator as Absent</h3>
+
+            <form method="post" class="form-row">
+                <label>Operator</label>
+                <select name="operator" required>
+                    {% for o in operators %}
+                        <option>{{ o }}</option>
+                    {% endfor %}
+                </select>
+
+                <label>Date</label>
+                <input type="date" name="date" required>
+
+                <button class="action-save">🚫 Mark as Absent</button>
+            </form>
+        </div>
+
+        <!-- ============================= -->
+        <!-- ABSENTEEISM SUMMARY TABLE -->
+        <!-- ============================= -->
+        {% if absent_summary %}
+        <div class="table-container">
+            <h3 style="margin-bottom:20px;">📊 Operator Absenteeism Summary</h3>
+
+            <table class="modern-table">
+                <thead>
+                    <tr>
+                        <th>Operator Name</th>
+                        <th>No. of Absenteeism</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in absent_summary %}
+                    <tr>
+                        <td>{{ r.Operator }}</td>
+                        <td><b>{{ r.Absence_Count }}</b></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- ============================= -->
+        <!-- FILTER -->
+        <!-- ============================= -->
+        <div class="form-card" style="margin-top: 20px;">
+            <form method="get" class="form-row">
+
+                <label>Operator</label>
+                <select name="filter_operator" required>
+                    <option value="">Select</option>
+                    {% for o in operators %}
+                        <option value="{{ o }}" {% if filter_operator == o %}selected{% endif %}>
+                            {{ o }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <label>Month</label>
+                <select name="filter_month" required>
+                    <option value="">Select</option>
+                    {% for m in months %}
+                        <option value="{{ m.value }}"
+                            {% if filter_month == m.value %}selected{% endif %}>
+                            {{ m.label }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <button class="action-save">🔍 Apply Filter</button>
+            </form>
+        </div>
+
+        <!-- ============================= -->
+        <!-- CALENDAR -->
+        <!-- ============================= -->
+        {% if calendar_days %}
+
+        <!-- WEEKDAY HEADER -->
+        <div class="calendar-grid calendar-header">
+            <div>Mon</div>
+            <div>Tue</div>
+            <div>Wed</div>
+            <div>Thu</div>
+            <div>Fri</div>
+            <div>Sat</div>
+            <div>Sun</div>
+        </div>
+
+        <!-- CALENDAR BODY -->
+        <div class="calendar-grid">
+
+            <!-- EMPTY CELLS BEFORE 1st DAY -->
+            {% for _ in range(first_weekday) %}
+                <div class="calendar-cell empty"></div>
+            {% endfor %}
+
+            <!-- ACTUAL DAYS -->
+            {% for d in calendar_days %}
+                <div class="calendar-cell
+                    {% if d.type == 'absent' %}abs-absent{% endif %}
+                    {% if d.type == 'present' %}abs-present{% endif %}
+                    {% if d.type == 'off' %}abs-off{% endif %}
+                ">
+
+                    <div class="calendar-date">{{ d.day }}</div>
+
+                    <div class="calendar-status">
+                        {% if d.type == 'absent' %}
+                            <div>A</div>
+                            <button class="action-delete"
+                                style="margin-top:6px; font-size:12px;"
+                                onclick="removeAbsence('{{ d.date }}', '{{ filter_operator }}')">
+                                🗑 Remove
+                            </button>
+                        {% elif d.type == 'present' %}
+                            P
+                        {% elif d.type == 'off' %}
+                            Weekly Off
+                        {% endif %}
+                    </div>
+
+                </div>
+            {% endfor %}
+
+        </div>
+
+        {% endif %}
+
+    </div>
+</div>
+
+<script>
+function removeAbsence(date, operator) {
+
+    const code = prompt("Enter verification code to remove absence:");
+    if (!code) return;
+
+    const formData = new FormData();
+    formData.append("code", code);
+    formData.append("date", date);
+    formData.append("operator", operator);
+
+    fetch("/transactions/absenteeism/delete", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => {
+        if (res.status === 403) {
+            alert("❌ Invalid verification code.");
+            return;
+        }
+        if (!res.ok) {
+            alert("⚠️ Failed to remove absence.");
+            return;
+        }
+        location.reload();
+    });
+}
+</script>
+
+</body>
+</html>

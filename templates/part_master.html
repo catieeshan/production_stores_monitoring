@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Part Master</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <style>
+        .split-container {
+            display: flex;
+            height: calc(100vh - 120px);
+            gap: 20px;
+        }
+
+        .left-panel {
+            width: 280px;
+            background: white;
+            border: 1px solid #ccc;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .right-panel {
+            flex: 1;
+            background: white;
+            border: 1px solid #ccc;
+            padding: 15px;
+            overflow: auto;
+        }
+
+        .part-list {
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .part-item {
+            padding: 8px 12px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+
+        .part-item:hover {
+            background-color: #f0f6ff;
+        }
+
+        .part-item.active {
+            background-color: #1f8ef1;
+            color: white;
+            font-weight: bold;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+    </style>
+
+<script>
+    function filterParts() {
+        var input = document.getElementById("partSearch");
+        var filter = input.value.toUpperCase();
+        var items = document.getElementsByClassName("part-item");
+
+        for (let i = 0; i < items.length; i++) {
+            let txt = items[i].innerText || items[i].textContent;
+            if (txt.toUpperCase().indexOf(filter) > -1) {
+                items[i].style.display = "";
+            } else {
+                items[i].style.display = "none";
+            }
+        }
+    }
+</script>
+
+</head>
+<body>
+
+<div class="topbar">Machine Shop Production Monitoring System</div>
+
+<div class="layout">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="menu-section">
+            <div class="menu-title">Master Setup</div>
+            <hr>
+            <div class="menu-item" onclick="location.href='/production'">⬅ Back to Production Home</div>
+        </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main-content">
+
+        <h2>📦 Part Master</h2>
+
+        <hr>
+
+        <!-- TOOLBAR -->
+        <div class="toolbar">
+            <form method="post" enctype="multipart/form-data">
+                <input type="file" name="excel_file" accept=".xlsx" required>
+                <button type="submit">📤 Upload Excel</button>
+            </form>
+        </div>
+
+        <hr>
+
+        <div class="split-container">
+
+            <!-- LEFT: PART LIST -->
+            <div class="left-panel">
+                <div style="padding:10px; border-bottom:1px solid #ccc;">
+                    <div style="font-weight:bold; margin-bottom:5px;">
+                        📦 Parts ({{ parts|length }})
+                    </div>
+                    <input type="text"
+                        id="partSearch"
+                        placeholder="🔍 Search part..."
+                        style="width:100%; box-sizing:border-box; padding:6px; border-radius:4px; border:1px solid #ccc;"
+                        onkeyup="filterParts()">
+                </div>
+                <div class="part-list">
+                    {% for p in parts %}
+                        <div class="part-item {% if p == selected_part %}active{% endif %}"
+                             onclick="location.href='?part={{ p }}'">
+                            {{ p }}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- RIGHT: OPERATIONS -->
+            <div class="right-panel">
+
+                {% if not selected_part %}
+                    <p>Please select a part from the list on the left in order to view its operations.</p>
+                {% else %}
+
+                    <h3>🔧 Operations for Part: {{ selected_part }}</h3>
+                    
+                    <!-- ADD OPERATION -->
+                    <div class="form-card">
+                        <form method="post">
+
+                            <div class="form-row">
+                                <label>Part Number</label>
+                                <input value="{{ selected_part }}" readonly style="background-color:#f0f0f0;">
+
+                                <input type="hidden" name="part_number" value="{{ selected_part }}">
+
+                                <label>Operation No</label>
+                                <input name="operation_no" placeholder="e.g. OP10" required>
+
+                                <label>Cycle Time (min)</label>
+                                <input name="cycle_time" type="number" step="0.01" placeholder="e.g. 5.5" required>
+
+                                <label>Machine Type</label>
+                                <input name="machine_type" placeholder="e.g. CNC / VMC" required>
+                            </div>
+
+                            <div class="form-actions">
+                                <button class="action-save" type="submit">➕ Add Operation</button>
+                            </div>
+
+                        </form>
+                    </div>
+
+                    <hr>
+
+                    <div class="table-container">
+                        <table class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>Operation No</th>
+                                    <th>Cycle Time (min)</th>
+                                    <th>Machine Type</th>
+                                    <th>Target / Hour</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+
+                            {% for row in operations %}
+                            {% if request.args.get("edit_op") == row["Operation No"] %}
+
+                            <!-- EDIT MODE ROW -->
+                            <tr>
+                                <form method="post" action="/edit_part_op">
+                                    <td align="center">
+                                        <input type="hidden" name="part_number" value="{{ selected_part }}">
+                                        <input type="hidden" name="old_operation_no" value="{{ row['Operation No'] }}">
+                                        <input class="table-input" name="operation_no" value="{{ row['Operation No'] }}" required>
+                                    </td>
+                                    <td align="center">
+                                        <input class="table-input" name="cycle_time" type="number" step="0.01" value="{{ row['Cycle Time (min)'] }}" required>
+                                    </td>
+                                    <td align="center">
+                                        <input class="table-input" name="machine_type" value="{{ row['Machine Type'] }}" required>
+                                    </td>
+                                    <td align="center">
+                                        (auto)
+                                    </td>
+                                    <td align="center" class="table-actions">
+                                        <button class="action-save" type="submit">💾 Save</button>
+                                        <a class="action-cancel" href="/part_master?part={{ selected_part }}">❌ Cancel</a>    
+                                    </td>
+                                </form>
+                            </tr>
+
+                            {% else %}
+
+                            <!-- NORMAL ROW -->
+                            <tr>
+                                <td align="center">{{ row["Operation No"] }}</td>
+                                <td align="center">{{ row["Cycle Time (min)"] }}</td>
+                                <td align="center">{{ row["Machine Type"] }}</td>
+                                <td align="center">{{ row["Target Per Hour"] }}</td>
+                                <td align="center">
+                                    <a class="action-btn action-edit"
+                                        href="/part_master?part={{ selected_part }}&edit_op={{ row['Operation No'] }}">✏️ Edit</a>
+                                    <a class="action-btn action-delete"
+                                        href="/delete_part_op?part={{ selected_part }}&op={{ row['Operation No'] }}">🗑️ Delete</a>
+                                </td>
+                            </tr>
+
+                            {% endif %}
+                            {% endfor %}
+                        </table>
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>

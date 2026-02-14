@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Production Entry</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <!-- PART → OPERATIONS (WITH MACHINE TYPE) -->
+    <script type="application/json" id="partOpsData">
+        {{ part_ops | tojson | safe }}
+    </script>
+
+    <!-- MACHINE NO → MACHINE TYPE -->
+    <script type="application/json" id="machineTypesData">
+        {{ machine_types | tojson | safe }}
+    </script>
+
+    <script>
+        const partOps = JSON.parse(document.getElementById("partOpsData").textContent);
+        const machineTypes = JSON.parse(document.getElementById("machineTypesData").textContent);
+
+        let lossEntries = [];
+
+        /* ================================
+           OPERATION FILTERING (MAIN MACHINE)
+        ================================= */
+        function updateOperationOptions(row) {
+            const part = row.querySelector(".part-select").value;
+            const opSelect = row.querySelector(".op-select");
+            const machineNo = document.getElementById("mainMachineSelect").value;
+            const machineType = machineTypes[machineNo];
+
+            opSelect.innerHTML = "";
+            if (!part || !machineType || !partOps[part]) return;
+
+            partOps[part].forEach(item => {
+                if (item.machine_type === machineType) {
+                    const opt = document.createElement("option");
+                    opt.value = item.op;
+                    opt.textContent = item.op;
+                    opSelect.appendChild(opt);
+                }
+            });
+        }
+
+        function onMainMachineChange() {
+            document.querySelectorAll(".op-select").forEach(sel => sel.innerHTML = "");
+            recalcTotals();
+        }
+
+        /* ================================
+           CALCULATIONS
+        ================================= */
+        function recalcRow(row) {
+            const qty = parseFloat(row.querySelector(".qty").value) || 0;
+            const castRej = parseFloat(row.querySelector(".cast-rej").value) || 0;
+            const machRej = parseFloat(row.querySelector(".mach-rej").value) || 0;
+
+            row.querySelector(".good-qty").value =
+                Math.max(qty - castRej - machRej, 0);
+
+            recalcTotals();
+        }
+
+        function recalcOtherRow(row) {
+            const qty = parseFloat(row.querySelector(".other-qty").value) || 0;
+            const castRej = parseFloat(row.querySelector(".other-cast").value) || 0;
+            const machRej = parseFloat(row.querySelector(".other-mach").value) || 0;
+
+            row.querySelector(".other-good").value =
+                Math.max(qty - castRej - machRej, 0);
+
+            recalcTotals();
+        }
+
+        function recalcTotals() {
+            let productionTime = 0;
+            let lossTime = 0;
+
+            document.querySelectorAll(".time-spent").forEach(inp => {
+                productionTime += parseFloat(inp.value) || 0;
+            });
+
+            document.querySelectorAll(".other-time").forEach(inp => {
+                productionTime += parseFloat(inp.value) || 0;
+            });
+
+            lossEntries.forEach(e => lossTime += e.time);
+
+            const available = parseInt(
+                document.getElementById("availableTime").textContent
+            );
+
+            const accounted = productionTime + lossTime;
+            const pending = available - accounted;
+
+            document.getElementById("totalMainTime").textContent = productionTime;
+            document.getElementById("accountedTime").textContent = accounted;
+            document.getElementById("pendingTime").textContent = pending.toFixed(0);
+            document.getElementById("pendingTimeDisplay").textContent = pending.toFixed(0);
+
+            // ----- UPDATE PROGRESS BAR -----
+            let percent = 0;
+            if (available > 0) {
+                percent = (accounted / available) * 100;
+            }
+
+            const bar = document.getElementById("timeBarFill");
+
+            // Clamp width visually, but NOT logic
+            bar.style.width = Math.min(percent, 100).toFixed(0) + "%";
+
+            // Reset colors
+            bar.classList.remove("time-bar-yellow", "time-bar-green", "time-bar-red");
+
+            // Color rules
+            if (percent < 100) {
+                bar.classList.add("time-bar-yellow");
+            } else if (percent === 100) {
+                bar.classList.add("time-bar-green");
+            } else {
+                bar.classList.add("time-bar-red");
+            }
+
+            // Hide error automatically when pending becomes zero
+            if (pending === 0) {
+                document.getElementById("pendingError").style.display = "none";
+            }
+        }
+
+        function validateBeforeSave() {
+            const pending = parseInt(
+                document.getElementById("pendingTime").textContent
+            );
+
+            const err = document.getElementById("pendingError");
+
+            // ❌ Case 1: Over-accounted time
+            if (pending < 0) {
+                err.innerHTML =
+                    "⚠️ Accounted For Time is more than Available Time. Please re-check and correct.";
+                err.style.display = "block";
+                err.scrollIntoView({ behavior: "smooth", block: "center" });
+                return false;
+            }
+
+            // ❌ Case 2: Pending time not explained
+            if (pending > 0) {
+                err.innerHTML =
+                    "⚠️ Pending time is not fully accounted for. Please explain or record remaining time before saving.";
+                err.style.display = "block";
+                err.scrollIntoView({ behavior: "smooth", block: "center" });
+                return false;
+            }
+
+            // ✅ Case 3: Perfect accounting
+            err.style.display = "none";
+            prepareSubmission();
+            return true;
+        }
+
+        /* ================================
+           LOSS / OTHER MACHINE TOGGLE
+        ================================= */
+        function onReasonChange() {
+
+            const reason = document.getElementById("lossReasonSelect").value;
+
+            const lossSection = document.getElementById("lossInputSection");
+            const otherSection = document.getElementById("otherMachineSection");
+
+            // =========================================
+            // IF OTHER MACHINE SELECTED
+            // =========================================
+            if (reason === "Work Done on Other Machine") {
+
+                // show other machine section
+                otherSection.style.display = "block";
+
+                // hide loss input
+                lossSection.style.display = "none";
+            }
+            else if (reason !== "") {
+
+                // show loss input
+                lossSection.style.display = "block";
+
+                // 🔴 DO NOT DELETE OTHER MACHINE DATA
+                // just keep it hidden visually
+                otherSection.style.display = "block";
+            }
+            else {
+
+                lossSection.style.display = "none";
+            }
+
+            recalcTotals();
+        }
+
+        function addLossEntry() {
+            const reason = document.getElementById("lossReasonSelect").value;
+            const time = parseFloat(document.getElementById("lossTimeInput").value) || 0;
+            const pending = parseInt(document.getElementById("pendingTime").textContent);
+
+            if (!reason || reason === "Work Done on Other Machine") {
+                alert("Select a valid loss reason.");
+                return;
+            }
+
+            if (time <= 0 || time > pending) {
+                alert("Invalid loss time.");
+                return;
+            }
+
+            lossEntries.push({ reason, time });
+            renderLossTable();
+
+            document.getElementById("lossTimeInput").value = "";
+            recalcTotals();
+        }
+
+        function renderLossTable() {
+            const tbody = document.getElementById("lossTableBody");
+            tbody.innerHTML = "";
+
+            lossEntries.forEach((e, i) => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${i + 1}</td>
+                        <td>${e.reason}</td>
+                        <td>${e.time}</td>
+                        <td>
+                            <button class="action-delete"
+                                    onclick="lossEntries.splice(${i},1);
+                                             renderLossTable();
+                                             recalcTotals();">
+                                🗑️
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        /* ================================
+           MAIN MACHINE ROWS
+        ================================= */
+        function addRow() {
+            const tbody = document.getElementById("mainTableBody");
+            const tr = document.createElement("tr");
+
+            tr.innerHTML = `
+                <td></td>
+                <td>
+                    <select class="table-input part-select"
+                            onchange="updateOperationOptions(this.closest('tr'))">
+                        <option value="">Select</option>
+                        {% for p in parts %}
+                            <option value="{{ p }}">{{ p }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>
+                    <select class="table-input op-select"></select>
+                </td>
+                <td>
+                    <input class="table-input time-spent" type="number" min="0"
+                           oninput="recalcTotals()">
+                </td>
+                <td>
+                    <input class="table-input qty" type="number" min="0"
+                           oninput="recalcRow(this.closest('tr'))">
+                </td>
+                <td>
+                    <input class="table-input cast-rej" type="number" min="0"
+                           oninput="recalcRow(this.closest('tr'))">
+                </td>
+                <td>
+                    <input class="table-input mach-rej" type="number" min="0"
+                           oninput="recalcRow(this.closest('tr'))">
+                </td>
+                <td>
+                    <input class="table-input good-qty" readonly>
+                </td>
+                <td>
+                    <button class="action-delete"
+                            onclick="this.closest('tr').remove(); recalcTotals();">
+                        🗑️
+                    </button>
+                </td>
+            `;
+
+            tbody.appendChild(tr);
+            renumberMain();
+        }
+
+        function renumberMain() {
+            let i = 1;
+            document.querySelectorAll("#mainTableBody tr")
+                .forEach(tr => tr.children[0].textContent = i++);
+        }
+
+        /* ================================
+           OTHER MACHINE ROWS
+        ================================= */
+        function addOtherMachineRow() {
+            const tbody = document.getElementById("otherMachineBody");
+            const tr = document.createElement("tr");
+
+            tr.innerHTML = `
+                <td></td>
+                <td>
+                    <select class="table-input other-machine"
+                            onchange="updateOtherMachineOps(this.closest('tr'))">
+                        <option value="">Select</option>
+                        {% for m in machines %}
+                            <option value="{{ m['Machine No'] }}">{{ m['Machine No'] }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>
+                    <select class="table-input other-part"
+                            onchange="updateOtherMachineOps(this.closest('tr'))">
+                        <option value="">Select</option>
+                        {% for p in parts %}
+                            <option value="{{ p }}">{{ p }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>
+                    <select class="table-input other-op"></select>
+                </td>
+                <td>
+                    <input class="table-input other-time" type="number" min="0"
+                           oninput="recalcTotals()">
+                </td>
+                <td>
+                    <input class="table-input other-qty" type="number" min="0"
+                           oninput="recalcOtherRow(this.closest('tr'))">
+                </td>
+                <td>
+                    <input class="table-input other-cast" type="number" min="0"
+                           oninput="recalcOtherRow(this.closest('tr'))">
+                </td>
+                <td>
+                    <input class="table-input other-mach" type="number" min="0"
+                           oninput="recalcOtherRow(this.closest('tr'))">
+                </td>
+                <td>
+                    <input class="table-input other-good" readonly>
+                </td>
+                <td>
+                    <button class="action-delete"
+                            onclick="this.closest('tr').remove(); recalcTotals();">
+                        🗑️
+                    </button>
+                </td>
+            `;
+
+            tbody.appendChild(tr);
+            renumberOther();
+        }
+
+        function updateOtherMachineOps(row) {
+            const machineNo = row.querySelector(".other-machine").value;
+            const part = row.querySelector(".other-part").value;
+            const opSelect = row.querySelector(".other-op");
+
+            opSelect.innerHTML = "";
+
+            if (!machineNo || !part) return;
+
+            const machineType = machineTypes[machineNo];
+            if (!machineType || !partOps[part]) return;
+
+            partOps[part].forEach(item => {
+                if (item.machine_type === machineType) {
+                    const opt = document.createElement("option");
+                    opt.value = item.op;
+                    opt.textContent = item.op;
+                    opSelect.appendChild(opt);
+                }
+            });
+        }
+
+        function renumberOther() {
+            let i = 1;
+            document.querySelectorAll("#otherMachineBody tr")
+                .forEach(tr => tr.children[0].textContent = i++);
+        }
+
+        function prepareSubmission() {
+            const main = [];
+            const other = [];
+
+            document.querySelectorAll("#mainTableBody tr").forEach(tr => {
+                main.push({
+                    part: tr.querySelector(".part-select").value,
+                    operation: tr.querySelector(".op-select").value,
+                    time: tr.querySelector(".time-spent").value,
+                    qty: tr.querySelector(".qty").value,
+                    cast: tr.querySelector(".cast-rej").value,
+                    mach: tr.querySelector(".mach-rej").value,
+                    good: tr.querySelector(".good-qty").value
+                });
+            });
+
+            document.querySelectorAll("#otherMachineBody tr").forEach(tr => {
+                other.push({
+                    machine: tr.querySelector(".other-machine").value,
+                    part: tr.querySelector(".other-part").value,
+                    operation: tr.querySelector(".other-op").value,
+                    time: tr.querySelector(".other-time").value,
+                    qty: tr.querySelector(".other-qty").value,
+                    cast: tr.querySelector(".other-cast").value,
+                    mach: tr.querySelector(".other-mach").value,
+                    good: tr.querySelector(".other-good").value
+                });
+            });
+
+            document.getElementById("mainDataInput").value = JSON.stringify(main);
+            document.getElementById("otherDataInput").value = JSON.stringify(other);
+            document.getElementById("lossDataInput").value = JSON.stringify(lossEntries);
+        }
+
+        function updateAvailableTime() {
+            const available =
+                document.getElementById("otSelect").value === "Yes" ? 570 : 480;
+
+            document.getElementById("availableTime").textContent = available;
+
+            lossEntries = [];
+            renderLossTable();
+            recalcTotals();
+        }
+
+        window.onload = function () {
+            updateAvailableTime();
+            addRow();
+        };
+    </script>
+</head>
+
+<body>
+
+<div class="topbar">Machine Shop Production Monitoring System</div>
+
+<div class="layout">
+
+    <div class="sidebar">
+        <div class="menu-section">
+            <div class="menu-title">Transactions</div>
+            <hr>
+            <div class="menu-item" onclick="location.href='/production'">⬅ Back to Production Home</div>
+        </div>
+    </div>
+
+    <div class="main-content">
+
+        <h2>📝 Production Entry Form</h2>
+
+        <!-- ✅ SINGLE FORM WRAPPING EVERYTHING -->
+        <form method="post"
+            action="/save_production_entry"
+            onsubmit="return validateBeforeSave();">
+
+            <!-- HEADER -->
+            <div class="form-card">
+                <div class="form-row">
+
+                    <label>Date</label>
+                    <input type="date" name="date" required>
+
+                    <label>Operator Name</label>
+                    <select name="operator" required>
+                        {% for o in operators %}
+                            <option>{{ o["Operator Name"] }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <label>Shift</label>
+                    <select name="shift" required>
+                        <option>Shift 1</option>
+                        <option>Shift 2</option>
+                    </select>
+
+                    <label>OT Present</label>
+                    <select id="otSelect" name="ot" onchange="updateAvailableTime()" required>
+                        <option>No</option>
+                        <option>Yes</option>
+                    </select>
+
+                    <label>Main Machine No.</label>
+                    <select id="mainMachineSelect"
+                            name="main_machine"
+                            onchange="onMainMachineChange()"
+                            required>
+                        {% for m in machines %}
+                            <option>{{ m["Machine No"] }}</option>
+                        {% endfor %}
+                    </select>
+
+                </div>
+            </div>
+
+            <!-- INFO BAR -->
+            <div class="form-card">
+
+                <h4 style="margin-bottom:10px;">⏱️ Shift Time Utilization</h4>
+
+                <!-- PROGRESS BAR -->
+                <div class="time-bar-container">
+                    <div id="timeBarFill" class="time-bar-fill"></div>
+                </div>
+
+                <!-- NUMBERS -->
+                <div style="display:flex; justify-content:space-between; margin-top:10px;">
+                    <div>⏳ Available: <b><span id="availableTime">0</span> mins.</b></div>
+                    <div>🧮 Accounted: <b><span id="accountedTime">0</span> mins.</b></div>
+                    <div>⚠️ Pending: <b><span id="pendingTime">0</span> mins.</b></div>
+                </div>
+
+            </div>
+
+            <!-- MAIN MACHINE -->
+            <div class="table-container">
+
+                <h3>🟩 Work Done on Main Machine</h3>
+
+                <table class="modern-table">
+                    <thead>
+                        <tr>
+                            <th>Sr. No.</th>
+                            <th>Part No.</th>
+                            <th>Operation No.</th>
+                            <th>Time Spent (mins.)</th>
+                            <th>Produced Qty.</th>
+                            <th>Cast Rejection Qty.</th>
+                            <th>Machining Rejection Qty.</th>
+                            <th>Good Qty.</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="mainTableBody"></tbody>
+                </table>
+
+                <div class="v-gap-sm">
+                    <button type="button" class="action-save" onclick="addRow()">➕ Add Row</button>
+                </div>
+
+                <div class="v-gap-sm">
+                    <b>Total Time Spent:</b>
+                    <span id="totalMainTime">0</span> mins.
+                </div>
+
+                <hr>
+
+                <!-- PENDING TIME -->
+                <h3>🟥 Pending Time Explanation</h3>
+
+                <div>
+                    Pending Time:
+                    <b><span id="pendingTimeDisplay">0</span> mins.</b>
+                </div>
+
+                <div id="pendingError"
+                    style="display:none; margin-top:8px; color:#c62828; font-weight:600;">
+                    ⚠️ Pending time is not fully accounted for.  
+                    Please explain or record remaining time before saving.
+                </div>
+
+                <div class="v-gap-md"></div>
+
+                <div class="form-row">
+                    <label>Reason For Pending Time</label>
+                    <select id="lossReasonSelect" onchange="onReasonChange()">
+                        <option value="">Select</option>
+                        <option>Work Done on Other Machine</option>
+                        <option>Setup Time</option>
+                        <option>Process Issue</option>
+                        <option>General Work</option>
+                        <option>RM Unavailable</option>
+                        <option>No Plan</option>
+                        <option>Breakdown</option>
+                        <option>Maintenance</option>
+                        <option>Power Failure</option>
+                        <option>Inspection</option>
+                        <option>Meeting</option>
+                        <option>Operator Short/Half Day</option>
+                    </select>
+                </div>
+
+                <!-- LOSS INPUT -->
+                <div id="lossInputSection" style="display:none;" class="v-gap-md">
+
+                    <div class="form-row">
+                        <label>Time Lost (mins.)</label>
+                        <input type="number" id="lossTimeInput" min="0">
+                        <button type="button" class="action-save" onclick="addLossEntry()">➕ Add</button>
+                    </div>
+
+                    <div class="v-gap-md"></div>
+
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>Sr. No.</th>
+                                <th>Reason For Pending Time</th>
+                                <th>Time Lost (mins.)</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="lossTableBody"></tbody>
+                    </table>
+
+                </div>
+
+                <!-- OTHER MACHINE -->
+                <div id="otherMachineSection" style="display:none;">
+
+                    <h3>🟦 Work Done on Other Machine</h3>
+
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>Sr. No.</th>
+                                <th>Machine No.</th>
+                                <th>Part No.</th>
+                                <th>Operation No.</th>
+                                <th>Time Spent (mins.)</th>
+                                <th>Produced Qty.</th>
+                                <th>Cast Rejection Qty.</th>
+                                <th>Machining Rejection Qty.</th>
+                                <th>Good Qty.</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="otherMachineBody"></tbody>
+                    </table>
+
+                    <div class="v-gap-sm">
+                        <button type="button" class="action-save" onclick="addOtherMachineRow()">➕ Add Row</button>
+                    </div>
+
+                </div>
+
+                <!-- SAVE -->
+                <div class="form-actions">
+                    <button id="saveShiftBtn" class="action-save">
+                        💾 Save Production Entry
+                    </button>
+
+                    <input type="hidden" name="main_data" id="mainDataInput">
+                    <input type="hidden" name="other_data" id="otherDataInput">
+                    <input type="hidden" name="loss_data" id="lossDataInput">
+                </div>
+
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+</body>
+</html>

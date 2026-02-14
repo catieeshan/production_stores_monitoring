@@ -1,0 +1,281 @@
+{% extends "stores_home.html" %}
+{% block stores_content %}
+
+<h2>📊 Stores Control Tower</h2>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+{% if data and data.kpi %}
+
+<!-- ================= KPI STRIP ================= -->
+<div class="kpi-row" style="margin-bottom:25px;">
+
+    <div class="kpi-box">
+        <div class="kpi-title">Total Inventory Value</div>
+        <div class="kpi-value">₹ {{ "{:,.0f}".format(data.kpi.inventory_value) }}</div>
+
+        <div style="font-size:12px;margin-top:8px;color:#666;">
+            RM: ₹ {{ "{:,.0f}".format(data.kpi.rm_value) }}<br>
+            WIP: ₹ {{ "{:,.0f}".format(data.kpi.wip_value) }}<br>
+            FG: ₹ {{ "{:,.0f}".format(data.kpi.fg_value) }}<br>
+            Reject: ₹ {{ "{:,.0f}".format(data.kpi.reject_value) }}
+        </div>
+    </div>
+
+    <div class="kpi-box">
+        <div class="kpi-title">This Month Consumption</div>
+        <div class="kpi-value">₹ {{ "{:,.0f}".format(data.kpi.month_consumption) }}</div>
+    </div>
+
+    <div class="kpi-box danger">
+        <div class="kpi-title">Low Stock Items</div>
+        <div class="kpi-value">{{ data.kpi.low_stock_count }}</div>
+    </div>
+
+    <div class="kpi-box danger">
+        <div class="kpi-title">Dead Stock Value (60 days)</div>
+        <div class="kpi-value">₹ {{ "{:,.0f}".format(data.kpi.dead_stock_value) }}</div>
+    </div>
+
+</div>
+
+<!-- ================= CATEGORY VALUE ================= -->
+<div class="form-card">
+    <h3>📦 Inventory Value by Category</h3>
+    <div style="width:600px;height:600px;margin:auto;">
+        <canvas id="categoryChart"></canvas>
+    </div>
+</div>
+
+<!-- ================= TOP CONSUMPTION ================= -->
+<div class="form-card">
+    <h3>🔥 Top 10 Consumption (This Month)</h3>
+    <canvas id="consumptionChart" height="120"></canvas>
+</div>
+
+<!-- ================= DAILY TREND ================= -->
+<div class="form-card">
+    <h3>📈 Daily Consumption Trend</h3>
+    <canvas id="dailyChart" height="100"></canvas>
+</div>
+
+<!-- ================= LOW STOCK ================= -->
+<div class="form-card">
+    <h3>⚠ Low Stock Alert</h3>
+    <div class="table-container">
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>RM Stock</th>
+                    <th>Min Stock</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in data.low_stock %}
+                <tr>
+                    <td>{{ r["Item Code"] }}</td>
+                    <td class="prod-red"><b>{{ r["RM Stock"] }}</b></td>
+                    <td>{{ r["Min"] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ================= DEAD STOCK ================= -->
+<div class="form-card">
+    <h3>🧊 Dead Stock (60 Days)</h3>
+    <div class="table-container">
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Total Stock</th>
+                    <th>Value</th>
+                    <th>Last Movement</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in data.dead_stock %}
+                <tr>
+                    <td>{{ r["Item Code"] }}</td>
+                    <td>{{ r["Total Stock"] }}</td>
+                    <td>₹ {{ "{:,.0f}".format(r["Total Value"] or 0) }}</td>
+                    <td>{{ r["Date"].strftime("%d-%b-%Y") if r["Date"] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ================= HIGH VALUE ================= -->
+<div class="form-card">
+    <h3>💰 Top Inventory by Value</h3>
+    <div class="table-container">
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Total Stock</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in data.high_value %}
+                <tr>
+                    <td>{{ r["Item Code"] }}</td>
+                    <td>{{ r["Total Stock"] }}</td>
+                    <td>₹ {{ "{:,.0f}".format(r["Total Value"]) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ================= SLOW WIP ================= -->
+<div class="form-card">
+    <h3>🐢 Slow Moving WIP (>15 days)</h3>
+    <div class="table-container">
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>WIP Qty</th>
+                    <th>Last FG Return</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in data.slow_wip %}
+                <tr>
+                    <td>{{ r["Item Code"] }}</td>
+                    <td>{{ r["WIP Stock"] }}</td>
+                    <td>
+                        {{ r["Date"].strftime("%d-%b-%Y") if r["Date"] else "No FG yet" }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ================= HIGH REJECTION ================= -->
+<div class="form-card">
+    <h3>🔥 High Rejection (This Month)</h3>
+    <div class="table-container">
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Reject Qty</th>
+                    <th>Reject Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in data.high_rej %}
+                <tr>
+                    <td>{{ r["Item Code"] }}</td>
+                    <td>{{ r["Qty"] }}</td>
+                    <td>₹ {{ "{:,.0f}".format(r["Value"]) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ================= JSON DATA ================= -->
+<script id="catData" type="application/json">{{ data.category_value|tojson }}</script>
+<script id="consData" type="application/json">{{ data.top_consumed|tojson }}</script>
+<script id="dailyData" type="application/json">{{ data.daily_trend|tojson }}</script>
+
+<script>
+const catData = JSON.parse(document.getElementById("catData").textContent);
+const consData = JSON.parse(document.getElementById("consData").textContent);
+const dailyData = JSON.parse(document.getElementById("dailyData").textContent);
+
+/* CATEGORY DONUT */
+if(catData.length){
+
+new Chart(document.getElementById("categoryChart"),{
+type:"doughnut",
+data:{
+labels:catData.map(x=>x.Category),
+datasets:[{
+data:catData.map(x=>x.Value),
+backgroundColor:[
+"#3b82f6",
+"#22c55e",
+"#f59e0b",
+"#ef4444",
+"#8b5cf6",
+"#06b6d4",
+"#84cc16",
+"#f97316"
+]
+}]
+},
+options:{
+responsive:true,
+maintainAspectRatio:false,
+cutout:"68%",
+
+layout:{
+    padding:{
+        top:40,
+        bottom:20   // 🔴 gap between donut and legend
+    }
+},
+
+plugins:{
+legend:{
+position:"bottom",
+align:"center",
+labels:{
+boxWidth:20,
+padding:30   // 🔴 space between legend items
+}
+}
+}
+}
+});
+
+}
+
+/* TOP CONSUMPTION */
+if(consData.length){
+new Chart(document.getElementById("consumptionChart"),{
+type:"bar",
+data:{
+labels:consData.map(x=>x.Item),
+datasets:[{data:consData.map(x=>x.Value),backgroundColor:"#22c55e"}]
+},
+options:{plugins:{legend:{display:false}},responsive:true}
+});
+}
+
+/* DAILY TREND */
+if(dailyData.length){
+new Chart(document.getElementById("dailyChart"),{
+type:"line",
+data:{
+labels:dailyData.map(x=>x.Date),
+datasets:[{
+data:dailyData.map(x=>x.Value),
+borderColor:"#f59e0b",
+backgroundColor:"rgba(245,158,11,0.2)",
+fill:true,
+tension:0.3
+}]
+},
+options:{plugins:{legend:{display:false}},responsive:true}
+});
+}
+</script>
+
+{% endif %}
+{% endblock %}

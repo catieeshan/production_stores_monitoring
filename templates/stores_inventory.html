@@ -1,0 +1,99 @@
+{% extends "stores_home.html" %}
+
+{% block stores_content %}
+
+<h2>📦 Live Inventory</h2>
+<hr>
+
+<!-- ================= KPI STRIP ================= -->
+<div class="kpi-row">
+
+    <div class="kpi-box">
+        <div class="kpi-title">Total Inventory Value</div>
+        <div class="kpi-value">₹ {{ total_value }}</div>
+    </div>
+
+    <div class="kpi-box">
+        <div class="kpi-title">Total Item Codes</div>
+        <div class="kpi-value">{{ total_items }}</div>
+    </div>
+
+    <div class="kpi-box danger">
+        <div class="kpi-title">Low Stock Items</div>
+        <div class="kpi-value">{{ low_stock }}</div>
+    </div>
+
+</div>
+
+<hr>
+
+<!-- ================= INVENTORY TABLE ================= -->
+<div class="table-container">
+    <table class="modern-table">
+
+        <thead>
+            <tr>
+                <th>Item Code</th>
+                <th>Category</th>
+                <th>RM Stock</th>
+                <th>WIP Stock</th>
+                <th>FG Stock</th>
+                <th>Reject Stock</th>
+                <th>Total Stock</th>
+                <th>Total Value (₹)</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for r in records %}
+            <tr>
+
+                <td align="center">
+                    <b>{{ r["Item Code"] }}</b>
+                </td>
+
+                <td align="center">
+                    {{ r["Category"] }}
+                </td>
+
+                <!-- RM STOCK -->
+                <td align="center"
+                    class="{% if r['Low'] %}prod-red{% endif %}">
+                    {{ r["RM Stock"] }}
+                </td>
+
+                <!-- WIP -->
+                <td align="center">
+                    {{ r["WIP Stock"] }}
+                </td>
+
+                <!-- FG -->
+                <td align="center">
+                    {{ r["FG Stock"] }}
+                </td>
+
+                <!-- REJECT -->
+                <td align="center">
+                    {{ r["Reject Stock"] }}
+                </td>
+
+                <!-- TOTAL -->
+                <td align="center">
+                    <b>{{ r["Total Stock"] }}</b>
+                </td>
+
+                <!-- VALUE -->
+                <td align="center">
+                    ₹ {{ r["Total Value"] }}
+                </td>
+
+            </tr>
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+</div>
+
+{% endblock %}

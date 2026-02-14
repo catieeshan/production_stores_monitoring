@@ -1,0 +1,323 @@
+{% extends "management_layout.html" %}
+
+{% block management_content %}
+
+<h2>📊 Management Dashboard</h2>
+
+<!-- ============================= -->
+<!-- PRODUCTION SUMMARY -->
+<!-- ============================= -->
+<div class="form-card">
+
+    <h3>🏭 Production Summary ({{ dashboard.production_cards.date }})</h3>
+
+    <div class="kpi-row">
+
+        <div class="kpi-box">
+            <div class="kpi-title">Total Produced Qty.</div>
+            <div class="kpi-value">{{ dashboard.production_cards.total_good_qty }} nos.</div>
+        </div>
+
+        <div class="kpi-box danger">
+            <div class="kpi-title">Total Machining Rejection</div>
+            <div class="kpi-value">{{ dashboard.production_cards.total_defects }} nos.</div>
+        </div>
+
+    </div>
+
+    <!-- TOP 5 PARTS (LAST OP, LAST 3 DAYS) -->
+    <h4 style="margin-top:22px; margin-bottom:20px;">
+    🔝 Top 5 Parts Production Output
+    </h4>
+
+    {% if dashboard.top_parts %}
+    <div class="table-container">
+
+    <table class="modern-table top-parts-table">
+        <thead>
+            <tr>
+                <th class="part-col">Part No</th>
+                {% for d in dashboard.last_days %}
+                    <th class="date-col">{{ d }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in dashboard.top_parts %}
+            <tr>
+                <td class="part-cell">{{ row["Part"] }}</td>
+                {% for d in dashboard.last_days %}
+                    {% set val = row[d] or 0 %}
+                    <td>
+                        {% if val > 0 %}
+                            <span class="qty-pill">{{ val }}</span>
+                        {% else %}
+                            <span class="qty-zero">0</span>
+                        {% endif %}
+                    </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    </div>
+    {% else %}
+        <p>No production data available.</p>
+    {% endif %}
+
+</div>
+
+<!-- ============================= -->
+<!-- LOSS DISTRIBUTION (3 DAYS) -->
+<!-- ============================= -->
+<div class="form-card">
+
+    <h3>⏱ Total Loss Distribution (Last 3 Working Days)</h3>
+
+    <!-- PIE ROW -->
+    <div class="loss-grid"
+         style="display:flex; gap:80px; justify-content:center;">
+
+        {% for d in dashboard.loss_pies %}
+        <div style="
+            width:300px;
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+        ">
+
+            <!-- Date -->
+            <div style="
+                font-weight:600;
+                margin-bottom:10px;
+                font-size:16px;
+                text-align:center;
+            ">
+                {{ d.date }}
+            </div>
+
+            <!-- Pie -->
+            <canvas id="lossPie{{ loop.index }}"
+                    width="250"
+                    height="250"></canvas>
+
+            <!-- Total Loss -->
+            <div
+                id="lossTotal{{ loop.index }}"
+                style="
+                    margin-top:12px;
+                    font-size:16px;
+                    font-weight:600;
+                    color:#dc2626;
+                ">
+            </div>
+
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 🔐 SINGLE SHARED LEGEND -->
+    <div id="lossLegend"
+         style="
+            display:flex;
+            flex-wrap:wrap;
+            justify-content:center;
+            gap:18px;
+            margin-top:30px;
+         ">
+    </div>
+
+</div>
+
+<!-- ============================= -->
+<!-- SHOP PERFORMANCE -->
+<!-- ============================= -->
+<div>
+    <div class="form-card">
+
+        <h3>📈 Shop Performance (Last 3 Working Days)</h3>
+
+        {% if dashboard.performance %}
+            <div style="position:relative; height:450px;">
+                <canvas id="perfChart"></canvas>
+            </div>
+        {% else %}
+            <p>No performance data.</p>
+        {% endif %}
+
+    </div>
+</div>
+
+<!-- ============================= -->
+<!-- SAFE JSON PAYLOADS -->
+<!-- ============================= -->
+<script type="application/json" id="lossJson">
+    {{ dashboard.loss_pies | tojson }}
+</script>
+
+<script type="application/json" id="perfJson">
+    {{ dashboard.performance | tojson }}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+/* =======================
+   LOSS PIE CHARTS (SINGLE LEGEND, COLOR LOCKED)
+======================= */
+const lossSets = JSON.parse(
+    document.getElementById("lossJson").textContent
+);
+
+/* 🎨 MASTER COLOR PALETTE */
+const COLOR_POOL = [
+    "#ef4444", "#f97316", "#facc15",
+    "#22c55e", "#38bdf8", "#6366f1",
+    "#a855f7", "#ec4899", "#14b8a6"
+];
+
+/* 🔐 LOSS → COLOR MAP */
+const lossColorMap = {};
+let colorIndex = 0;
+
+function getLossColor(label) {
+    if (!lossColorMap[label]) {
+        lossColorMap[label] = COLOR_POOL[colorIndex % COLOR_POOL.length];
+        colorIndex++;
+    }
+    return lossColorMap[label];
+}
+
+/* 🥧 DRAW PIES */
+lossSets.forEach((set, idx) => {
+    const canvas = document.getElementById("lossPie" + (idx + 1));
+    const totalBox = document.getElementById("lossTotal" + (idx + 1));
+
+    if (!set.data || set.data.length === 0) {
+        totalBox.innerText = "No loss recorded";
+        return;
+    }
+
+    const labels = set.data.map(x => x.label);
+    const values = set.data.map(x => x.value);
+    const colors = labels.map(l => getLossColor(l));
+
+    const totalMinutes = values.reduce((a, b) => a + b, 0);
+    totalBox.innerText = `Total Loss: ${(totalMinutes / 60).toFixed(2)} hrs`;
+
+    new Chart(canvas, {
+        type: "pie",
+        data: {
+            labels,
+            datasets: [{
+                data: values,
+                backgroundColor: colors,
+                radius: 110,
+                hoverRadius: 115
+            }]
+        },
+        options: {
+            responsive: false,
+            plugins: {
+                legend: { display: false },   // 🔥 CRITICAL FIX
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            const pct = ((ctx.raw / totalMinutes) * 100).toFixed(1);
+                            return `${ctx.label}: ${ctx.raw} mins (${pct}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+
+/* =======================
+   BUILD SINGLE LEGEND BELOW
+======================= */
+const legendDiv = document.getElementById("lossLegend");
+
+Object.entries(lossColorMap).forEach(([label, color]) => {
+    const item = document.createElement("div");
+    item.style.display = "flex";
+    item.style.alignItems = "center";
+    item.style.gap = "8px";
+    item.style.fontSize = "14px";
+
+    item.innerHTML = `
+        <span style="
+            width:14px;
+            height:14px;
+            background:${color};
+            display:inline-block;
+            border-radius:3px;">
+        </span>
+        <span>${label}</span>
+    `;
+
+    legendDiv.appendChild(item);
+});
+</script>
+
+<script>
+/* =======================
+   PERFORMANCE TREND
+======================= */
+const perf = JSON.parse(
+    document.getElementById("perfJson").textContent
+);
+
+if (perf.length > 0) {
+
+    new Chart(document.getElementById("perfChart"), {
+        type: "line",
+        data: {
+            labels: perf.map(x => x.date),
+            datasets: [
+                {
+                    label: "OEE %",
+                    data: perf.map(x => x.oee),
+                    borderColor: "#22c55e",
+                    tension: 0.3
+                },
+                {
+                    label: "Availability %",
+                    data: perf.map(x => x.availability),
+                    borderColor: "#38bdf8",
+                    tension: 0.3
+                },
+                {
+                    label: "Performance %",
+                    data: perf.map(x => x.performance),
+                    borderColor: "#facc15",
+                    tension: 0.3
+                },
+                {
+                    label: "Quality %",
+                    data: perf.map(x => x.quality),
+                    borderColor: "#a855f7",
+                    tension: 0.3
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,   // 🔥 THIS STOPS EXPANSION
+            plugins: {
+                legend: { position: "bottom" }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 120
+                }
+            }
+        }
+    });
+}
+</script>
+
+{% endblock %}

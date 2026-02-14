@@ -1,0 +1,121 @@
+{% extends "reports_layout.html" %}
+{% block report_content %}
+
+<h2>📉 Loss Analysis Report</h2>
+
+<!-- FILTER -->
+<div class="form-card">
+    <form method="get" class="form-row">
+
+        <label>Month</label>
+        <select name="month">
+            <option value="">All</option>
+            {% for m in months %}
+                <option value="{{ m.value }}"
+                    {% if selected_month == m.value %}selected{% endif %}>
+                    {{ m.label }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <button class="action-save">🔍 Apply</button>
+    </form>
+</div>
+
+<!-- EXPORT BUTTON -->
+<div style="margin-bottom:15px;">
+    <a href="/export/loss?month={{ selected_month }}">
+        <button class="action-save">⬇ Export to Excel</button>
+    </a>
+</div>
+
+{% if loss_data %}
+
+<!-- ============================= -->
+<!-- JSON DATA HOLDER (SAFE) -->
+<!-- ============================= -->
+<script type="application/json" id="lossDataJson">
+{{ loss_data | tojson | safe }}
+</script>
+
+<!-- ============================= -->
+<!-- PIE CARD -->
+<!-- ============================= -->
+<div class="form-card" style="margin:0 auto; text-align:center;">
+
+    <h3 style="margin-bottom:6px;">Total Loss Distribution</h3>
+
+    <div style="font-weight:600; color:#374151; margin-bottom:12px;">
+        ⏱️ Total Time Lost:
+        <span style="color:#b91c1c;">
+            {{ total_hours }} hrs ({{ total_minutes }} mins)
+        </span>
+    </div>
+
+    <div style="width:800px; height:550px; margin:0 auto;">
+        <canvas id="lossPieChart"></canvas>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+(() => {
+
+    const raw = document.getElementById("lossDataJson").textContent;
+    const lossData = JSON.parse(raw);
+
+    const labels = lossData.map(d => d.label);
+    const values = lossData.map(d => Number(d.value));
+
+    const ctx = document.getElementById("lossPieChart");
+
+    new Chart(ctx, {
+        type: "pie",
+        data: {
+            labels: labels,
+            datasets: [{
+                data: values,
+                backgroundColor: [
+                    "#ef4444", "#f97316", "#facc15",
+                    "#22c55e", "#38bdf8", "#6366f1",
+                    "#a855f7", "#ec4899", "#14b8a6"
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            radius: "80%",
+            plugins: {
+                legend: {
+                    position: "bottom",
+                    labels: {
+                        boxWidth: 14,
+                        padding: 14,
+                        font: { size: 12 }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.raw;
+                            const total = values.reduce((a, b) => a + b, 0);
+                            const pct = total ? ((value / total) * 100).toFixed(1) : 0;
+                            return `${context.label}: ${value} mins (${pct}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+})();
+</script>
+
+{% else %}
+<p style="margin-top:20px;">No loss data available.</p>
+{% endif %}
+
+{% endblock %}

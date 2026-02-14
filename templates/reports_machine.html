@@ -1,0 +1,137 @@
+{% extends "reports_layout.html" %}
+
+{% block report_content %}
+
+<h2>🏭 Machine Utilization Report (Daily)</h2>
+
+<!-- FILTER -->
+<div class="form-card">
+    <form method="get" class="form-row">
+
+        <!-- Machine -->
+        <label>Machine</label>
+        <select name="machine">
+            <option value="">All</option>
+            {% for m in machines %}
+                <option value="{{ m }}" {% if machine_filter == m %}selected{% endif %}>
+                    {{ m }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <!-- Month -->
+        <label>Month</label>
+        <select name="month">
+            <option value="">All</option>
+            {% for m in months %}
+                <option value="{{ m.value }}"
+                    {% if selected_month == m.value %}selected{% endif %}>
+                    {{ m.label }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <div>
+            <button class="action-save">🔍 Apply</button>
+        </div>
+
+    </form>
+</div>
+
+<!-- EXPORT BUTTON -->
+<div style="margin-bottom:15px;">
+    <a href="/export/machine?machine={{ machine_filter }}&month={{ selected_month }}">
+        <button class="action-save">⬇ Export to Excel</button>
+    </a>
+</div>
+
+<script type="application/json" id="machineData">
+    {{ records | tojson }}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+{% if records and records|length > 0 %}
+
+<!-- CHART -->
+<div class="form-card">
+    <h3 style="margin-bottom:10px;">📊 Daily Machine Utilization (%)</h3>
+    <canvas id="utilChart" height="140"></canvas>
+</div>
+
+<!-- TABLE -->
+<div class="table-container">
+<table class="modern-table">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Machine No.</th>
+            <th>Available Time (mins.)</th>
+            <th>Time Spent (mins.)</th>
+            <th>Utilization (%)</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for r in records %}
+        <tr>
+            <td>{{ r["Date_Display"] }}</td>
+            <td>{{ r["Machine"] }}</td>
+            <td>{{ r["Available_Time"] }}</td>
+            <td>{{ r["Time_Spent"] }}</td>
+            <td><b>{{ r["Utilization_%"] }}%</b></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+
+<script>
+    const data = JSON.parse(
+        document.getElementById("machineData").textContent
+    );
+
+    const labels = data.map(
+        r => `${r.Date} | ${r.Machine}`
+    );
+
+    const values = data.map(r => r["Utilization_%"]);
+
+    const colors = values.map(v => {
+        if (v >= 85) return "#4ade80";
+        if (v >= 60) return "#fef08a";
+        return "#f87171";
+    });
+
+    new Chart(document.getElementById("utilChart"), {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [{
+                data: values,
+                backgroundColor: colors,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 120,
+                    ticks: {
+                        callback: v => v + "%"
+                    }
+                }
+            }
+        }
+    });
+</script>
+
+{% else %}
+<p style="margin-top:15px;">No machine utilization data available.</p>
+{% endif %}
+
+{% endblock %}

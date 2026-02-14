@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reports</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="topbar">Machine Shop Production Monitoring System</div>
+
+<div class="layout">
+
+    <!-- REPORTS SIDEBAR -->
+    <div class="sidebar">
+        <div class="menu-section">
+            <div class="menu-title">Reports</div>
+
+            <div class="menu-item {% if active_report=='daily' %}active{% endif %}"
+                 onclick="location.href='/reports/daily'">
+                📅 Daily Production
+            </div>
+
+            <div class="menu-item {% if active_report=='operator' %}active{% endif %}"
+                onclick="location.href='/reports/operator'">
+                👷 Operator Performance
+            </div>
+
+            <div class="menu-item {% if active_report=='oee' %}active{% endif %}"
+                onclick="location.href='/reports/oee'">
+                📊 OEE Report
+            </div>
+
+            <div class="menu-item {% if active_report=='machine' %}active{% endif %}"
+                onclick="location.href='/reports/machine'">
+                🏭 Machine Utilization
+            </div>
+
+            <div class="menu-item {% if active_report=='loss' %}active{% endif %}"
+                onclick="location.href='/reports/loss'">
+                🔴 Loss Analysis
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="menu-item" onclick="location.href='/production'">
+            ⬅ Back to Production Home
+        </div>
+    </div>
+
+    <!-- REPORT CONTENT -->
+    <div class="main-content">
+        {% block report_content %}{% endblock %}
+    </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Machine Shop Production Monitoring System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <!-- ========================================= -->
+    <!-- TOP BAR -->
+    <!-- ========================================= -->
+    <div class="topbar">
+        Machine Shop Production Monitoring System
+    </div>
+
+    <!-- ===== SIDEBAR ===== -->
+
+<div class="sidebar">
+
+<!-- PRODUCTION MODULE -->
+<div class="menu-section">
+    <div class="menu-title">🏭 Modules</div>
+
+    <hr>
+
+    <div class="menu-item"
+         onclick="location.href='/production'">
+         🏭 Production Monitoring
+    </div>
+
+    <div class="menu-item"
+         onclick="location.href='/stores'">
+         📦 Stores Management
+    </div>
+</div>
+
+</div>
+
+
+</body>
+</html>

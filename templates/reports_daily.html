@@ -1,0 +1,169 @@
+{% extends "reports_layout.html" %}
+
+{% block report_content %}
+
+<h2>📅 Daily Production Report</h2>
+
+<!-- FILTERS -->
+<div class="form-card">
+    <form method="get" class="form-row">
+
+        <label>Month</label>
+        <select name="month">
+            <option value="">All</option>
+            {% for m in months %}
+                <option value="{{ m.value }}"
+                    {% if selected_month == m.value %}selected{% endif %}>
+                    {{ m.label }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <label>Date</label>
+        <input type="date" name="date" value="{{ selected_date }}">
+
+        <label>Operator</label>
+        <select name="operator">
+            <option value="">All</option>
+            {% for o in operators %}
+                <option value="{{ o }}" {% if operator_filter==o %}selected{% endif %}>
+                    {{ o }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <label>Part No.</label>
+        <select name="part">
+            <option value="">All</option>
+            {% for p in parts %}
+                <option value="{{ p }}" {% if part_filter==p %}selected{% endif %}>
+                    {{ p }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <label>Operation No.</label>
+        <select name="operation">
+            <option value="">All</option>
+            {% for op in operations %}
+                <option value="{{ op }}" {% if operation_filter==op %}selected{% endif %}>
+                    {{ op }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <button class="action-save">🔍 Apply</button>
+
+    </form>
+</div>
+
+<div style="margin-bottom:15px;">
+    <a href="/reports/daily/export?month={{selected_month}}&date={{selected_date}}&operator={{operator_filter}}&part={{part_filter}}&operation={{operation_filter}}">
+        <button class="action-save">⬇ Export to Excel</button>
+    </a>
+</div>
+
+<!-- REPORT TABLE -->
+<div class="table-container">
+
+    {% if records %}
+    <table class="modern-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Operator Name</th>
+                <th>Shift</th>
+                <th>Machine No.</th>
+                <th>Part No.</th>
+                <th>Operation No.</th>
+                <th>OT Present</th>
+                <th>Produced Qty.</th>
+                <th>Cast Rejection</th>
+                <th>Machining Rejection</th>
+                <th>Good Qty.</th>
+
+                <!-- ✅ NEW TIME COLUMNS -->
+                <th>Available Time (mins.)</th>
+                <th>Time Spent (mins.)</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for r in records %}
+        <tr>
+            <td>{{ r["Date_Display"] }}</td>
+            <td>{{ r["Operator"] }}</td>
+            <td>{{ r["Shift"] }}</td>
+            <td>{{ r["Machine"] }}</td>
+            <td>{{ r["Part"] }}</td>
+            <td>{{ r["Operation"] }}</td>
+            <td>{{ r["OT"] }}</td>
+            <td>{{ r["Qty"] }}</td>
+            <td>{{ r["Cast_Rej"] }}</td>
+            <td>{{ r["Mach_Rej"] }}</td>
+            <td>{{ r["Good_Qty"] }}</td>
+
+            <!-- ✅ NEW TIME VALUES -->
+            <td>{{ r["Available_Time"] }}</td>
+            <td>{{ r["Time_Spent"] }}</td>
+            <td>
+                <button class="action-delete"
+                    data-date="{{ r['Date'] }}"
+                    data-operator="{{ r['Operator'] }}"
+                    data-shift="{{ r['Shift'] }}"
+                    data-machine="{{ r['Machine'] }}"
+                    data-part="{{ r['Part'] }}"
+                    data-operation="{{ r['Operation'] }}"
+                    data-time="{{ r['Time_Min'] }}"
+                    data-source="{{ r['_source'] }}"
+                    onclick="deleteEntry(this)">
+                    🗑 Delete
+                </button>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <p style="margin-top:15px;">
+            No production records found for the selected filters.
+        </p>
+    {% endif %}
+
+</div>
+
+<script>
+function deleteEntry(btn) {
+    const code = prompt("Enter verification code to delete this entry:");
+    if (!code) return;
+
+    const formData = new FormData();
+    formData.append("code", code);
+    formData.append("Date", btn.dataset.date);
+    formData.append("Operator", btn.dataset.operator);
+    formData.append("Shift", btn.dataset.shift);
+    formData.append("Machine", btn.dataset.machine);
+    formData.append("Part", btn.dataset.part);
+    formData.append("Operation", btn.dataset.operation);
+    formData.append("Time_Min", btn.dataset.time);
+    formData.append("source", btn.dataset.source); // ✅ FIX
+
+    fetch("/reports/daily/delete", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => {
+        if (res.status === 403) {
+            alert("❌ Invalid verification code.");
+            return;
+        }
+        if (!res.ok) {
+            alert("⚠️ Failed to delete entry.");
+            return;
+        }
+        location.reload();
+    });
+}
+</script>
+
+{% endblock %}

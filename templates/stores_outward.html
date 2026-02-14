@@ -1,0 +1,180 @@
+{% extends "stores_home.html" %}
+
+{% block stores_content %}
+
+<h2>🚚 Material Outward</h2>
+<hr>
+
+<!-- ================= ERROR DISPLAY ================= -->
+{% if request.args.get("error") %}
+<div style="
+    background:#fee2e2;
+    color:#b91c1c;
+    padding:10px;
+    margin-bottom:15px;
+    border-radius:6px;
+    font-weight:600;">
+    ❌ {{ request.args.get("error") }}
+</div>
+{% endif %}
+
+<!-- ============================= -->
+<!-- OUTWARD ENTRY FORM -->
+<!-- ============================= -->
+<div class="form-card">
+
+    <form method="post" action="/stores/save_outward">
+
+        <div class="form-row">
+
+            <label>Date</label>
+            <input type="date" name="date" required>
+
+            <label>Outward Type</label>
+            <select name="otype" id="otype" required onchange="updatePartyLabel()">
+                {% for t in outward_types %}
+                    <option value="{{ t }}">{{ t }}</option>
+                {% endfor %}
+            </select>
+
+            <label>Item Code</label>
+            <select name="item" required>
+                {% for i in items %}
+                    <option value="{{ i }}">{{ i }}</option>
+                {% endfor %}
+            </select>
+
+            <label>Quantity</label>
+            <input type="number" step="0.01" name="qty" required>
+
+            <label id="partyLabel">Customer Name</label>
+            <input type="text" name="party" required>
+
+            <label>Sent By</label>
+            <input type="text" name="sent_by" required>
+
+            <label>Remarks</label>
+            <input type="text" name="remarks">
+
+        </div>
+
+        <div class="form-actions">
+            <button class="action-save">💾 Save Outward</button>
+        </div>
+
+    </form>
+
+</div>
+
+<hr>
+
+<!-- ============================= -->
+<!-- OUTWARD REGISTER -->
+<!-- ============================= -->
+<h3>📋 Outward Register</h3>
+
+<div class="table-container">
+    <table class="modern-table">
+
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Outward No</th>
+                <th>Item Code</th>
+                <th>Qty</th>
+                <th>Type</th>
+                <th>Party</th>
+                <th>Sent By</th>
+                <th>Remarks</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for r in records %}
+            <tr>
+
+                <td align="center">{{ r["Date"] }}</td>
+                <td align="center">{{ r["Ref_No"] }}</td>
+                <td align="center">{{ r["Item"] }}</td>
+                <td align="center">{{ r["Qty"] }}</td>
+
+                <td align="center">
+                    {{ r["Remarks"].split("|")[0] }}
+                </td>
+
+                <td align="center">
+                    {{ r["Supplier"] }}
+                </td>
+
+                <td align="center">
+                    {{ r["Remarks"].split("|")[1].replace("Sent By:","") }}
+                </td>
+
+                <td align="center">
+                    {% if "|" in r["Remarks"] %}
+                        {{ r["Remarks"].split("|")[-1] }}
+                    {% endif %}
+                </td>
+
+                <td align="center">
+
+                    <a class="action-btn action-delete"
+                       onclick="deleteOutward(`{{ r['Timestamp'] }}`)">
+                       🗑️ Delete
+                    </a>
+
+                </td>
+
+            </tr>
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+</div>
+
+<!-- ================= PARTY LABEL SCRIPT ================= -->
+<script>
+function updatePartyLabel(){
+
+    let type = document.getElementById("otype").value;
+    let label = document.getElementById("partyLabel");
+
+    if(type === "Customer Dispatch" || type === "Sample Dispatch"){
+        label.innerText = "Customer Name";
+    }else{
+        label.innerText = "Vendor Name";
+    }
+}
+
+document.addEventListener("DOMContentLoaded", updatePartyLabel);
+</script>
+
+<!-- ================= DELETE SCRIPT ================= -->
+<script>
+function deleteOutward(ts){
+
+    let code = prompt("Enter verification code:");
+    if(!code) return;
+
+    let form = new FormData();
+    form.append("timestamp", ts);
+    form.append("code", code);
+
+    fetch("/stores/delete_outward",{
+        method:"POST",
+        body:form
+    })
+    .then(res=>{
+        if(res.status==200){
+            location.reload();
+        }else{
+            alert("Invalid code");
+        }
+    });
+}
+</script>
+
+{% endblock %}

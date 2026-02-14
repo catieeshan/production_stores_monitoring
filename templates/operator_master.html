@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Operator Master</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="topbar">Machine Shop Production Monitoring System</div>
+
+<div class="layout">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="menu-section">
+            <div class="menu-title">Master Setup</div>
+            <hr>
+            <div class="menu-item" onclick="location.href='/production'">⬅ Back to Production Home</div>
+        </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main-content">
+
+        <h2>👷 Operator Master</h2>
+
+        <!-- TOOLBAR -->
+        <div class="toolbar">
+
+            <form method="get">
+                <input type="text" name="search" placeholder="🔍 Search operator..." value="{{ search }}"
+                       style="padding:6px; border-radius:4px; border:1px solid #ccc;">
+                <button type="submit">🔍 Search</button>
+            </form>
+
+            <hr>
+
+            <form method="post" enctype="multipart/form-data">
+                <input type="file" name="excel_file" accept=".xlsx" required>
+                <button type="submit">📤 Upload Excel</button>
+            </form>
+
+        </div>
+
+        <hr>
+
+        <!-- ADD / EDIT FORM -->
+        <div class="form-card">
+
+            <h3>➕ Add Operator</h3>
+
+            <form method="post" action="/operator_master">
+
+                <div class="form-row">
+
+                    <label>Operator ID</label>
+                    <input name="operator_id" value="{{ edit_id if edit_id else '' }}" required>
+
+                    <label>Operator Name</label>
+                    <input name="operator_name"
+                           value="{% for r in records if r['Operator ID']==edit_id %}{{ r['Operator Name'] }}{% endfor %}"
+                           required>
+
+                    <label>Skill Level</label>
+                    <input name="skill_level"
+                           value="{% for r in records if r['Operator ID']==edit_id %}{{ r['Skill Level'] }}{% endfor %}"
+                           required>
+
+                    <label>Is Active (Yes/No)</label>
+                    <input name="is_active"
+                           value="{% for r in records if r['Operator ID']==edit_id %}{{ r['Is Active'] }}{% endfor %}"
+                           required>
+
+                </div>
+
+                <div class="form-actions">
+                    <button class="action-save" type="submit">➕ Add Operator</button>
+                </div>
+
+            </form>
+        </div>
+
+        <!-- TABLE -->
+        <div class="table-container">
+            <table class="modern-table">
+                <thead>
+                    <tr>
+                        <th>Operator ID</th>
+                        <th>Operator Name</th>
+                        <th>Skill Level</th>
+                        <th>Is Active</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in records %}
+
+                    {% if edit_id == row["Operator ID"] %}
+
+                    <!-- EDIT MODE ROW -->
+                    <tr>
+                        <form method="post" action="/edit_operator">
+                            <td>
+                                <input type="hidden" name="old_operator_id" value="{{ row['Operator ID'] }}">
+                                <input class="table-input" name="operator_id" value="{{ row['Operator ID'] }}" required>
+                            </td>
+                            <td>
+                                <input class="table-input" name="operator_name" value="{{ row['Operator Name'] }}" required>
+                            </td>
+                            <td>
+                                <input class="table-input" name="skill_level" value="{{ row['Skill Level'] }}" required>
+                            </td>
+                            <td>
+                                <input class="table-input" name="is_active" value="{{ row['Is Active'] }}" required>
+                            </td>
+                            <td class="table-actions">
+                                <button class="action-save" type="submit">💾 Save</button>
+                                <a class="action-cancel" href="/operator_master">❌ Cancel</a>
+                            </td>
+                        </form>
+                    </tr>
+
+                    {% else %}
+
+                    <!-- NORMAL ROW -->
+                    <tr>
+                        <td>{{ row["Operator ID"] }}</td>
+                        <td>{{ row["Operator Name"] }}</td>
+                        <td>{{ row["Skill Level"] }}</td>
+                        <td>{{ row["Is Active"] }}</td>
+                        <td>
+                            <a class="action-btn action-edit" href="/operator_master?edit_id={{ row['Operator ID'] }}">✏️ Edit</a>
+                            <a class="action-btn action-delete" href="/delete_operator?id={{ row['Operator ID'] }}">🗑️ Delete</a>
+                        </td>
+                    </tr>
+
+                    {% endif %}
+
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>

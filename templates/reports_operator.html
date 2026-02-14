@@ -1,0 +1,165 @@
+{% extends "reports_layout.html" %}
+
+{% block report_content %}
+
+<h2>👷 Operator Performance Report</h2>
+
+<script type="application/json" id="operatorData">
+    {{ records | tojson }}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- FILTER -->
+<div class="form-card">
+    <form method="get" class="form-row">
+
+        <!-- Operator -->
+        <label>Operator</label>
+        <select name="operator">
+            <option value="">All</option>
+            {% for o in operators %}
+                <option value="{{ o }}" {% if operator_filter == o %}selected{% endif %}>
+                    {{ o }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <!-- Month -->
+        <label>Month</label>
+        <select name="month">
+            <option value="">All</option>
+            {% for m in months %}
+                <option value="{{ m.value }}"
+                    {% if selected_month == m.value %}selected{% endif %}>
+                    {{ m.label }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <!-- Submit -->
+        <div>
+            <button class="action-save">🔍 Apply</button>
+        </div>
+
+    </form>
+</div>
+
+<div style="margin-bottom:15px;">
+    <a href="/export/operator?operator={{ operator_filter }}&month={{ selected_month }}">
+        <button class="action-save">⬇ Export to Excel</button>
+    </a>
+</div>
+
+{% if records and records|length > 0 %}
+
+<!-- CHART -->
+<div class="form-card">
+    <h3 style="margin-bottom:10px;">📊 Performance by Operator - Productivity & Quality (%)</h3>
+    <canvas id="productivityChart" height="120"></canvas>
+</div>
+
+<!-- TABLE -->
+<div class="table-container">
+<table class="modern-table">
+    <thead>
+        <tr>
+            <th>Operator Name</th>
+            <th>Total Time (mins.)</th>
+            <th>Actual Produced Qty.</th>
+            <th>Expected Qty.</th>
+            <th>Productivity (%)</th>
+            <th>Quality (%)</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for r in records %}
+        <tr>
+            <td>{{ r["Operator"] }}</td>
+            <td>{{ r["Total_Time_Min"] }}</td>
+            <td>{{ r["Actual_Qty"] }}</td>
+            <td>{{ r["Expected_Qty"] | int }}</td>
+            <td class="
+                {% if r['Productivity_%'] > 95 %}
+                    prod-green
+                {% elif r['Productivity_%'] >= 80 %}
+                    prod-yellow
+                {% else %}
+                    prod-red
+                {% endif %}
+            ">
+                <b>{{ r["Productivity_%"] }} %</b>
+            </td>
+
+            <td class="
+                {% if r['Quality_%'] > 98 %}
+                    prod-green
+                {% elif r['Quality_%'] >= 95 %}
+                    prod-yellow
+                {% else %}
+                    prod-red
+                {% endif %}
+            ">
+                <b>{{ r["Quality_%"] }} %</b>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+
+<!-- SAFE CHART SCRIPT -->
+<script>
+    const operatorData = JSON.parse(
+        document.getElementById("operatorData").textContent
+    );
+
+    const labels = operatorData.map(r => r.Operator);
+    const productivity = operatorData.map(r => r["Productivity_%"]);
+    const quality = operatorData.map(r => r["Quality_%"]);
+
+    new Chart(document.getElementById("productivityChart"), {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: "Productivity (%)",
+                    data: productivity,
+                    backgroundColor: "#60a5fa",
+                    borderRadius: 6
+                },
+                {
+                    label: "Quality (%)",
+                    data: quality,
+                    backgroundColor: "#4ade80",
+                    borderRadius: 6
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 120,
+                    ticks: {
+                        callback: v => v + "%"
+                    }
+                }
+            }
+        }
+    });
+</script>
+
+{% if no_data_msg %}
+    <p style="margin-top:15px; font-weight:600; color:#b91c1c;">
+        {{ no_data_msg }}
+    </p>
+{% endif %}
+
+{% else %}
+<p style="margin-top:15px;">No operator productivity data available.</p>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,176 @@
+{% extends "reports_layout.html" %}
+{% block report_content %}
+
+<h2>📊 Overall Equipment Effectiveness (OEE)</h2>
+
+<!-- FILTER -->
+<div class="form-card">
+    <form method="get" class="form-row">
+
+        <!-- Machine -->
+        <label>Machine</label>
+        <select name="machine">
+            <option value="">All</option>
+            {% for m in machines %}
+                <option value="{{ m }}" {% if machine_filter == m %}selected{% endif %}>
+                    {{ m }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <!-- Month -->
+        <label>Month</label>
+        <select name="month">
+            <option value="">All</option>
+            {% for m in months %}
+                <option value="{{ m.value }}"
+                    {% if selected_month == m.value %}selected{% endif %}>
+                    {{ m.label }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <!-- Submit -->
+        <div>
+            <button class="action-save">🔍 Apply</button>
+        </div>
+
+    </form>
+</div>
+
+<!-- EXPORT BUTTON -->
+<div style="margin-bottom:15px;">
+    <a href="/export/oee?machine={{ machine_filter }}&month={{ selected_month }}">
+        <button class="action-save">⬇ Export to Excel</button>
+    </a>
+</div>
+
+<script type="application/json" id="oeeData">
+    {{ records | tojson }}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+{% if records and records|length > 0 %}
+
+<!-- CHART -->
+<div class="form-card">
+    <h3 style="margin-bottom:10px;">📈 OEE by Machine (%)</h3>
+    <canvas id="oeeChart" height="120"></canvas>
+</div>
+
+<!-- TABLE -->
+<div class="table-container">
+<table class="modern-table">
+    <thead>
+        <tr>
+            <th>Machine No.</th>
+            <th>Availability (%)</th>
+            <th>Performance (%)</th>
+            <th>Quality (%)</th>
+            <th><b>OEE (%)</b></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for r in records %}
+        <tr>
+            <td>{{ r["Machine"] }}</td>
+
+            <!-- Availability -->
+            <td class="
+                {% if r['Availability_%'] > 90 %}
+                    prod-green
+                {% elif r['Availability_%'] >= 80 %}
+                    prod-yellow
+                {% else %}
+                    prod-red
+                {% endif %}
+            ">
+                {{ r["Availability_%"] }} %
+            </td>
+
+            <!-- Performance -->
+            <td class="
+                {% if r['Performance_%'] > 95 %}
+                    prod-green
+                {% elif r['Performance_%'] >= 90 %}
+                    prod-yellow
+                {% else %}
+                    prod-red
+                {% endif %}
+            ">
+                {{ r["Performance_%"] }} %
+            </td>
+
+            <!-- Quality -->
+            <td class="
+                {% if r['Quality_%'] > 98 %}
+                    prod-green
+                {% elif r['Quality_%'] >= 96 %}
+                    prod-yellow
+                {% else %}
+                    prod-red
+                {% endif %}
+            ">
+                {{ r["Quality_%"] }} %
+            </td>
+
+            <!-- OEE -->
+            <td class="
+                {% if r['OEE_%'] > 80 %}
+                    prod-green
+                {% elif r['OEE_%'] >= 70 %}
+                    prod-yellow
+                {% else %}
+                    prod-red
+                {% endif %}
+            ">
+                <b>{{ r["OEE_%"] }} %</b>
+            </td>
+
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+
+<script>
+    const data = JSON.parse(
+        document.getElementById("oeeData").textContent
+    );
+
+    const labels = data.map(r => r.Machine);
+    const values = data.map(r => r["OEE_%"]);
+
+    new Chart(document.getElementById("oeeChart"), {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [{
+                label: "OEE %",
+                data: values,
+                backgroundColor: "#60a5fa",
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        callback: v => v + "%"
+                    }
+                }
+            }
+        }
+    });
+</script>
+
+{% else %}
+<p>No OEE data available.</p>
+{% endif %}
+
+{% endblock %}

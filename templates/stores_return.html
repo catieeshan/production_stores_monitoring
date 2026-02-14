@@ -1,0 +1,173 @@
+{% extends "stores_home.html" %}
+
+{% block stores_content %}
+
+<h2>🔁 Return to Stores</h2>
+<hr>
+
+<!-- ============================= -->
+<!-- RETURN ENTRY FORM -->
+<!-- ============================= -->
+<div class="form-card">
+
+    <form method="post" action="/stores/save_return">
+
+        <div class="form-row">
+
+            <label>Date</label>
+            <input type="date" name="date" required>
+
+            <label>Return Type</label>
+            <select name="rtype" id="rtype" required onchange="updateItemOptions()">
+                {% for t in return_types %}
+                    <option value="{{ t }}">{{ t }}</option>
+                {% endfor %}
+            </select>
+
+            <label>Item Code</label>
+            <select name="item" id="itemSelect" required></select>
+
+            <label>Quantity</label>
+            <input type="number" step="0.01" name="qty" required>
+
+            <label>Received By</label>
+            <input type="text" name="received_by" required>
+
+            <label>Remarks</label>
+            <input type="text" name="remarks">
+
+        </div>
+
+        <div class="form-actions">
+            <button class="action-save">💾 Save Return</button>
+        </div>
+
+    </form>
+
+</div>
+
+<hr>
+
+<!-- ============================= -->
+<!-- RETURN REGISTER -->
+<!-- ============================= -->
+<h3>📋 Return Register</h3>
+
+<div class="table-container">
+    <table class="modern-table">
+
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Item Code</th>
+                <th>Qty</th>
+                <th>Return Type</th>
+                <th>Received By</th>
+                <th>Remarks</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for r in records %}
+            <tr>
+                <td align="center">{{ r["Date"] }}</td>
+                <td align="center">{{ r["Item"] }}</td>
+                <td align="center">{{ r["Qty"] }}</td>
+                <td align="center">{{ r["Remarks"].split("|")[0] }}</td>
+                <td align="center">
+                    {{ r["Remarks"].split("|")[1].replace("Received By:","") }}
+                </td>
+                <td align="center">
+                    {% if "|" in r["Remarks"] %}
+                        {{ r["Remarks"].split("|")[-1] }}
+                    {% endif %}
+                </td>
+                <td align="center">
+                    <a class="action-btn action-edit"
+                       href="/stores/return?edit_ts={{ r['Timestamp'] }}">
+                       ✏️ Edit
+                    </a>
+
+                    <a class="action-btn action-delete"
+                       onclick="deleteReturn(`{{ r['Timestamp'] }}`)">
+                       🗑️ Delete
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+</div>
+
+<!-- ============================= -->
+<!-- DATA FOR JS (SAFE) -->
+<!-- ============================= -->
+<script>
+const ALL_ITEMS = {{ all_items | tojson | safe }};
+const PROD_ITEMS = {{ production_items | tojson | safe }};
+</script>
+
+<!-- ============================= -->
+<!-- ITEM FILTER LOGIC -->
+<!-- ============================= -->
+<script>
+function updateItemOptions(){
+
+    const type = document.getElementById("rtype").value;
+    const select = document.getElementById("itemSelect");
+
+    select.innerHTML = "";
+
+    let source = ALL_ITEMS;
+
+    if (
+        type === "Finished Goods Return" ||
+        type === "Machining Rejection" ||
+        type === "Casting Rejection"
+    ){
+        source = PROD_ITEMS;
+    }
+
+    source.forEach(i => {
+        let opt = document.createElement("option");
+        opt.value = i;
+        opt.textContent = i;
+        select.appendChild(opt);
+    });
+}
+
+document.addEventListener("DOMContentLoaded", updateItemOptions);
+</script>
+
+<!-- ============================= -->
+<!-- DELETE SCRIPT -->
+<!-- ============================= -->
+<script>
+function deleteReturn(ts){
+
+    let code = prompt("Enter verification code:");
+    if(!code) return;
+
+    let form = new FormData();
+    form.append("timestamp", ts);
+    form.append("code", code);
+
+    fetch("/stores/delete_return",{
+        method:"POST",
+        body:form
+    })
+    .then(res=>{
+        if(res.status==200){
+            location.reload();
+        }else{
+            alert("Invalid code");
+        }
+    });
+}
+</script>
+
+{% endblock %}

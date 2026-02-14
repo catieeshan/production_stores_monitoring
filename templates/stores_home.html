@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+    <title>Stores Management</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- ========================================= -->
+
+<!-- TOP BAR -->
+
+<!-- ========================================= -->
+
+<div class="topbar">
+    Stores Management System
+</div>
+
+<!-- ========================================= -->
+
+<!-- MAIN LAYOUT -->
+
+<!-- ========================================= -->
+
+<div class="layout">
+
+<!-- ===== SIDEBAR ===== -->
+<div class="sidebar">
+
+    <!-- STORES MENU -->
+    <div class="menu-section">
+        <div class="menu-title">Stores Management</div>
+
+        <div class="menu-item" onclick="location.href='/stores/item_master'">
+            📋 Item Master
+        </div>
+
+        <div class="menu-item" onclick="location.href='/stores/inward'">
+            📥 Material Inward
+        </div>
+
+        <div class="menu-item" onclick="location.href='/stores/issue'">
+            🛠 Issue to Production
+        </div>
+
+        <div class="menu-item" onclick="location.href='/stores/return'">
+            🔁 Return to Stores
+        </div>
+
+        <div class="menu-item" onclick="location.href='/stores/outward'">
+    📤 Material Outward
+        </div>
+
+        <div class="menu-item" onclick="location.href='/stores/reconcile'">
+            🧮 Stock Reconciliation
+        </div>
+
+        <div class="menu-item" onclick="location.href='/stores/inventory'">
+            📦 Live Inventory
+        </div>
+    </div>
+
+    <hr>
+
+    <div class="menu-section">
+        
+        <div class="menu-item" onclick="location.href='/stores/dashboard'">
+            🏠 Stores Dashboard
+        </div>
+    </div>
+
+    <hr>
+
+    <!-- BACK BUTTONS -->
+    <div class="menu-item" onclick="location.href='/'">
+            ⬅ Back to Main Home
+    </div>
+
+</div>
+
+<!-- ===== MAIN CONTENT ===== -->
+<div class="main-content">
+    {% block stores_content %}
+    <h2>📦 Stores Management</h2>
+    <p>Select a function from the left menu.</p>
+    {% endblock %}
+</div>
+
+
+</div>
+
+</body>
+</html>

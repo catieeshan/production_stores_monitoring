@@ -1,0 +1,160 @@
+{% extends "stores_home.html" %}
+
+{% block stores_content %}
+
+<h2>📋 Stores Item Master</h2>
+<hr>
+
+<!-- ============================= -->
+<!-- EXCEL UPLOAD -->
+<!-- ============================= -->
+<div class="form-card">
+    <form method="post" enctype="multipart/form-data">
+
+        <div class="form-row">
+            <label>Upload Item Master Excel</label>
+            <input type="file" name="excel_file" accept=".xlsx" required>
+        </div>
+
+        <div class="form-actions">
+            <button class="action-save">⬆ Upload Master</button>
+        </div>
+
+    </form>
+</div>
+
+<hr>
+
+<!-- ============================= -->
+<!-- ITEM MASTER TABLE -->
+<!-- ============================= -->
+<div class="table-container">
+    <table class="modern-table">
+
+        <thead>
+            <tr>
+                <th>Item Code</th>
+                <th>Category</th>
+                <th>Unit</th>
+                <th>RM Item</th>
+                <th>FG Item</th>
+                <th>Min Stock</th>
+                <th>RM Rate</th>
+                <th>FG Rate</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+        {% for r in records %}
+
+            {% if request.args.get("edit") == r["Item Code"] %}
+
+            <!-- ================= EDIT MODE ================= -->
+            <tr>
+                <form method="post">
+
+                    <input type="hidden" name="edit_item_code" value="{{ r['Item Code'] }}">
+
+                    <td align="center">
+                        <b>{{ r["Item Code"] }}</b>
+                    </td>
+
+                    <td align="center">
+                        <select class="table-input" name="category">
+                            <option {% if r["Category"]=="Raw Material" %}selected{% endif %}>Raw Material</option>
+                            <option {% if r["Category"]=="Consumable" %}selected{% endif %}>Consumable</option>
+                            <option {% if r["Category"]=="Tool" %}selected{% endif %}>Tool</option>
+                            <option {% if r["Category"]=="Bought Out" %}selected{% endif %}>Bought Out</option>
+                            <option {% if r["Category"]=="Production Item" %}selected{% endif %}>Production Item</option>
+                        </select>
+                    </td>
+
+                    <td align="center">
+                        <input class="table-input" name="unit" value="{{ r['Unit'] }}">
+                    </td>
+
+                    <td align="center">
+                        <input class="table-input rmfg" name="rm_name" value="{{ r['RM Item Name'] }}">
+                    </td>
+
+                    <td align="center">
+                        <input class="table-input rmfg" name="fg_name" value="{{ r['FG Item Name'] }}">
+                    </td>
+
+                    <td align="center">
+                        <input class="table-input" type="number" step="0.01" name="min_stock" value="{{ r['Min Stock'] }}">
+                    </td>
+
+                    <td align="center">
+                        <input class="table-input rmfg" type="number" step="0.01" name="rm_rate" value="{{ r['RM Rate'] }}">
+                    </td>
+
+                    <td align="center">
+                        <input class="table-input rmfg" type="number" step="0.01" name="fg_rate" value="{{ r['FG Rate'] }}">
+                    </td>
+
+                    <td align="center" class="table-actions">
+                        <button class="action-save">💾 Save</button>
+                        <a class="action-cancel" href="/stores/item_master">❌ Cancel</a>
+                    </td>
+
+                </form>
+            </tr>
+
+            {% else %}
+
+            <!-- ================= NORMAL ROW ================= -->
+            <tr>
+                <td align="center">{{ r["Item Code"] }}</td>
+                <td align="center">{{ r["Category"] }}</td>
+                <td align="center">{{ r["Unit"] }}</td>
+                <td align="center">{{ r["RM Item Name"] }}</td>
+                <td align="center">{{ r["FG Item Name"] }}</td>
+                <td align="center">{{ r["Min Stock"] }}</td>
+                <td align="center">{{ r["RM Rate"] }}</td>
+                <td align="center">{{ r["FG Rate"] }}</td>
+
+                <td align="center">
+                    <a class="action-btn action-edit"
+                       href="/stores/item_master?edit={{ r['Item Code'] }}">
+                       ✏️ Edit
+                    </a>
+
+                    <a class="action-btn action-delete"
+                       href="/stores/delete_item?code={{ r['Item Code'] }}"
+                       onclick="return confirm('Delete this Item Code?')">
+                       🗑 Delete
+                    </a>
+                </td>
+            </tr>
+
+            {% endif %}
+
+        {% endfor %}
+
+        </tbody>
+    </table>
+</div>
+
+<!-- ================= JS: SHOW RM/FG ONLY FOR PRODUCTION ================= -->
+<script>
+document.querySelectorAll("select[name='category']").forEach(function(sel){
+
+    function toggleFields(){
+        let row = sel.closest("tr");
+        let isProd = sel.value === "Production Item";
+
+        row.querySelectorAll(".rmfg").forEach(function(el){
+            el.style.display = isProd ? "" : "none";
+        });
+    }
+
+    sel.addEventListener("change", toggleFields);
+    toggleFields();
+
+});
+</script>
+
+{% endblock %}

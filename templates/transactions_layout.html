@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Transactions</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="topbar">Machine Shop Production Monitoring System</div>
+
+<div class="layout">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="menu-section">
+            <div class="menu-title">Transactions</div>
+
+            <hr>
+
+            <div class="menu-item"
+                 onclick="location.href='/production_entry'">
+                📝 Production Entry
+            </div>
+
+            <div class="menu-item"
+                 onclick="location.href='/operator_absenteeism'">
+                🚫 Operator Absenteeism
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="menu-item" onclick="location.href='/'">
+            ⬅ Back to Production Home
+        </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="main-content">
+        {% block transaction_content %}{% endblock %}
+    </div>
+
+</div>
+
+</body>
+</html>

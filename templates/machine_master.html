@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Machine Master</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="topbar">Machine Shop Production Monitoring System</div>
+
+<div class="layout">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="menu-section">
+            <div class="menu-title">Master Setup</div>
+            <hr>
+            <div class="menu-item" onclick="location.href='/production'">⬅ Back to Production Home</div>
+        </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main-content">
+
+        <h2>🏭 Machine Master</h2>
+
+        <!-- TOOLBAR -->
+        <div class="toolbar">
+
+            <form method="get">
+                <input type="text" name="search" placeholder="🔍 Search machine..." value="{{ search }}"
+                       style="padding:6px; border-radius:4px; border:1px solid #ccc;">
+                <button type="submit">🔍 Search</button>
+            </form>
+
+            <hr>
+
+            <form method="post" enctype="multipart/form-data">
+                <input type="file" name="excel_file" accept=".xlsx" required>
+                <button type="submit">📤 Upload Excel</button>
+            </form>
+
+        </div>
+
+        <hr>
+
+        <!-- ADD FORM -->
+        <div class="form-card">
+
+            <h3>➕ Add Machine</h3>
+
+            <form method="post" action="/machine_master">
+
+                <div class="form-row">
+
+                    <label>Machine No</label>
+                    <input name="machine_no" required>
+
+                    <label>Machine Type</label>
+                    <input name="machine_type" placeholder="CNC / VMC" required>
+
+                    <label>Normal Working Hours</label>
+                    <input name="normal_hours" type="number" step="0.1" required>
+
+                    <label>OT Working Hours</label>
+                    <input name="ot_hours" type="number" step="0.1" required>
+
+                </div>
+
+                <div class="form-actions">
+                    <button class="action-save" type="submit">➕ Add Machine</button>
+                </div>
+
+            </form>
+        </div>
+
+        <!-- TABLE -->
+        <div class="table-container">
+            <table class="modern-table">
+                <thead>
+                    <tr>
+                        <th>Machine No</th>
+                        <th>Machine Type</th>
+                        <th>Normal Working Hours</th>
+                        <th>OT Working Hours</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in records %}
+
+                    {% if edit_id == row["Machine No"] %}
+
+                    <!-- EDIT MODE ROW -->
+                    <tr>
+                        <form method="post" action="/edit_machine">
+                            <td>
+                                <input type="hidden" name="old_machine_no" value="{{ row['Machine No'] }}">
+                                <input class="table-input" name="machine_no" value="{{ row['Machine No'] }}" required>
+                            </td>
+                            <td>
+                                <input class="table-input" name="machine_type" value="{{ row['Machine Type'] }}" required>
+                            </td>
+                            <td>
+                                <input class="table-input" name="normal_hours" type="number" step="0.1" value="{{ row['Normal Working Hours'] }}" required>
+                            </td>
+                            <td>
+                                <input class="table-input" name="ot_hours" type="number" step="0.1" value="{{ row['OT Working Hours'] }}" required>
+                            </td>
+                            <td class="table-actions">
+                                <button class="action-save" type="submit">💾 Save</button>
+                                <a class="action-cancel" href="/machine_master">❌ Cancel</a>
+                            </td>
+                        </form>
+                    </tr>
+
+                    {% else %}
+
+                    <!-- NORMAL ROW -->
+                    <tr>
+                        <td>{{ row["Machine No"] }}</td>
+                        <td>{{ row["Machine Type"] }}</td>
+                        <td>{{ row["Normal Working Hours"] }}</td>
+                        <td>{{ row["OT Working Hours"] }}</td>
+                        <td>
+                            <a class="action-btn action-edit" href="/machine_master?edit_id={{ row['Machine No'] }}">✏️ Edit</a>
+                            <a class="action-btn action-delete" href="/delete_machine?no={{ row['Machine No'] }}">🗑️ Delete</a>
+                        </td>
+                    </tr>
+
+                    {% endif %}
+
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,101 @@
+Date,Operator,Shift,OT,Machine,Loss_Reason,Time_Min
+2026-02-05,Akash Ugile,Shift 1,Yes,VMC-51,Breakdown,120
+2026-02-07,Akash Ugile,Shift 1,Yes,VMC-51,Operator Short/Half Day,330
+2026-02-02,Tanweer,Shift 1,Yes,VMC-43,Breakdown,90
+2026-02-03,Tanweer,Shift 1,Yes,VMC-43,Breakdown,90
+2026-02-05,Tanweer,Shift 1,Yes,VMC-36,Setup Time,450
+2026-02-02,Abhishek Mane,Shift 1,Yes,VMC-36,Operator Short/Half Day,330
+2026-02-04,Abhishek Mane,Shift 1,Yes,VMC-84,Process Issue,60
+2026-02-04,Siddharth Paikrao,Shift 1,Yes,VMC-81,Breakdown,120
+2026-02-05,Siddharth Paikrao,Shift 1,Yes,VMC-81,Process Issue,60
+2026-02-07,Siddharth Paikrao,Shift 1,Yes,VMC-81,Breakdown,60
+2026-02-07,Varsha Kamble,Shift 1,Yes,VMC-88,Maintenance,30
+2026-02-09,Prashant Sutar,Shift 2,Yes,VMC-81,Setup Time,30
+2026-02-02,Buddhisagar,Shift 2,Yes,VMC-51,Setup Time,30
+2026-02-05,Buddhisagar,Shift 2,Yes,VMC-51,Breakdown,30
+2026-02-07,Buddhisagar,Shift 2,Yes,VMC-51,Breakdown,30
+2026-02-02,Amol Borse,Shift 2,Yes,VMC-43,Breakdown,90
+2026-02-03,Amol Borse,Shift 2,Yes,VMC-43,Setup Time,180
+2026-02-04,Amol Borse,Shift 2,Yes,VMC-43,Breakdown,60
+2026-02-05,Amol Borse,Shift 2,Yes,VMC-43,Power Failure,30
+2026-02-05,Amol Borse,Shift 2,Yes,VMC-43,Breakdown,90
+2026-02-06,Amol Borse,Shift 2,Yes,VMC-43,Breakdown,60
+2026-02-07,Amol Borse,Shift 2,Yes,VMC-43,Breakdown,60
+2026-02-09,Amol Borse,Shift 1,Yes,VMC-43,Breakdown,30
+2026-02-01,Ramchandra Dhadve,Shift 1,No,VMC-74,Breakdown,30
+2026-02-04,Ramchandra Dhadve,Shift 2,Yes,VMC-74,General Work,480
+2026-02-05,Ramchandra Dhadve,Shift 2,Yes,VMC-36,General Work,90
+2026-02-06,Ramchandra Dhadve,Shift 2,Yes,VMC-36,Maintenance,120
+2026-02-09,Ramchandra Dhadve,Shift 1,Yes,VMC-36,Setup Time,60
+2026-02-01,Nagesh Kumbhar,Shift 1,No,VMC-81,General Work,270
+2026-02-02,Nagesh Kumbhar,Shift 2,Yes,VMC-81,Setup Time,30
+2026-02-05,Nagesh Kumbhar,Shift 2,Yes,VMC-81,Power Failure,30
+2026-02-05,Amol Shinde,Shift 2,Yes,VMC-84,Power Failure,30
+2026-02-02,Ganesh Mhaske,Shift 2,Yes,CNC-50,General Work,90
+2026-02-03,Ganesh Mhaske,Shift 2,Yes,CNC-50,General Work,90
+2026-02-04,Ganesh Mhaske,Shift 2,Yes,CNC-50,General Work,60
+2026-02-05,Ganesh Mhaske,Shift 2,Yes,CNC-50,General Work,150
+2026-02-06,Ganesh Mhaske,Shift 2,Yes,CNC-50,General Work,120
+2026-02-07,Manoj Katane,Shift 1,Yes,VMC-36,Breakdown,30
+2026-02-09,Manoj Katane,Shift 2,Yes,VMC-36,Maintenance,150
+2026-02-02,Rehmat Ali,Shift 1,Yes,VMC-74,General Work,60
+2026-02-03,Rehmat Ali,Shift 1,Yes,VMC-74,Setup Time,450
+2026-02-05,Rehmat Ali,Shift 1,Yes,VMC-43,Setup Time,390
+2026-02-06,Rehmat Ali,Shift 1,Yes,CNC-62,General Work,360
+2026-02-07,Rehmat Ali,Shift 1,Yes,VMC-43,Breakdown,60
+2026-02-08,Rehmat Ali,Shift 1,No,VMC-43,Breakdown,30
+2026-02-09,Rehmat Ali,Shift 2,Yes,VMC-43,Breakdown,30
+2026-02-09,Vinayak,Shift 1,Yes,VMC-43,General Work,180
+2026-02-04,Arjun Sathe,Shift 2,Yes,VMC-102,General Work,120
+2026-02-02,Nishant,Shift 1,Yes,CNC-98,Setup Time,120
+2026-02-03,Nishant,Shift 1,Yes,CNC-68,Setup Time,120
+2026-02-04,Nishant,Shift 1,Yes,CNC-68,General Work,30
+2026-02-05,Nishant,Shift 2,Yes,CNC-68,Setup Time,120
+2026-02-05,Nishant,Shift 2,Yes,CNC-68,Power Failure,30
+2026-02-06,Nishant,Shift 2,Yes,CNC-77,Setup Time,150
+2026-02-03,Rakesh Dighe,Shift 1,Yes,CNC-77,Setup Time,210
+2026-02-04,Rakesh Dighe,Shift 1,Yes,CNC-77,General Work,150
+2026-02-04,Rakesh Dighe,Shift 1,Yes,CNC-77,Setup Time,120
+2026-02-05,Rakesh Dighe,Shift 1,Yes,CNC-62,General Work,300
+2026-02-05,Rakesh Dighe,Shift 1,Yes,CNC-62,Setup Time,180
+2026-02-06,Rakesh Dighe,Shift 1,Yes,CNC-77,Setup Time,120
+2026-02-06,Rakesh Dighe,Shift 1,Yes,CNC-77,Setup Time,60
+2026-02-06,Rakesh Dighe,Shift 1,Yes,CNC-77,Setup Time,120
+2026-02-06,Rakesh Dighe,Shift 1,Yes,CNC-77,General Work,90
+2026-02-07,Rakesh Dighe,Shift 1,Yes,CNC-62,Process Issue,60
+2026-02-08,Nileshwari Bisen,Shift 1,No,CNC-98,General Work,120
+2026-02-05,Sebu Ali,Shift 2,Yes,CNC-98,Power Failure,30
+2026-02-06,Sebu Ali,Shift 2,Yes,CNC-98,General Work,150
+2026-02-09,Sebu Ali,Shift 1,Yes,CNC-77,Setup Time,120
+2026-02-02,Ninad Kangutkar,Shift 2,Yes,CNC-68,Setup Time,330
+2026-02-03,Ninad Kangutkar,Shift 2,Yes,CNC-77,Setup Time,120
+2026-02-03,Ninad Kangutkar,Shift 2,Yes,CNC-77,Process Issue,30
+2026-02-06,Ninad Kangutkar,Shift 2,No,CNC-62,Setup Time,240
+2026-02-09,Ninad Kangutkar,Shift 1,Yes,CNC-62,Setup Time,60
+2026-02-05,Anil Shirtar,Shift 2,Yes,CNC-25,Power Failure,30
+2026-02-04,Shrikant Vishwakarma,Shift 1,Yes,CNC-62,Setup Time,90
+2026-02-04,Shrikant Vishwakarma,Shift 1,Yes,CNC-62,General Work,60
+2026-02-05,Shrikant Vishwakarma,Shift 1,Yes,CNC-98,General Work,30
+2026-02-06,Shrikant Vishwakarma,Shift 1,Yes,CNC-68,Process Issue,60
+2026-02-07,Shrikant Vishwakarma,Shift 1,Yes,CNC-77,Process Issue,30
+2026-02-07,Shrikant Vishwakarma,Shift 1,Yes,CNC-77,Power Failure,30
+2026-02-07,Shrikant Vishwakarma,Shift 1,Yes,CNC-77,General Work,60
+2026-02-05,Aashirwad,Shift 2,Yes,CNC-87,Power Failure,30
+2026-02-05,Aashirwad,Shift 2,Yes,CNC-87,General Work,60
+2026-02-03,Rohan Nigade,Shift 1,Yes,CNC-54,Setup Time,240
+2026-02-03,Rohan Nigade,Shift 1,Yes,CNC-54,Setup Time,210
+2026-02-04,Rohan Nigade,Shift 1,Yes,CNC-54,Setup Time,120
+2026-02-05,Rohan Nigade,Shift 1,Yes,CNC-54,Setup Time,180
+2026-02-06,Rohan Nigade,Shift 1,Yes,CNC-54,Setup Time,150
+2026-02-07,Rohan Nigade,Shift 1,Yes,CNC-68,Setup Time,180
+2026-02-01,Vikas Kadam,Shift 1,No,CNC-62,General Work,60
+2026-02-01,Vikas Kadam,Shift 1,No,CNC-62,Setup Time,90
+2026-02-02,Vikas Kadam,Shift 2,Yes,CNC-54,Setup Time,120
+2026-02-02,Vikas Kadam,Shift 2,Yes,CNC-54,General Work,60
+2026-02-04,Vikas Kadam,Shift 2,Yes,CNC-68,General Work,90
+2026-02-05,Vikas Kadam,Shift 2,Yes,CNC-54,Power Failure,30
+2026-02-05,Vikas Kadam,Shift 2,Yes,CNC-54,Process Issue,60
+2026-02-06,Vikas Kadam,Shift 2,Yes,CNC-54,Setup Time,90
+2026-02-07,Vikas Kadam,Shift 2,Yes,CNC-54,Setup Time,90
+2026-02-09,Vikas Kadam,Shift 1,Yes,CNC-54,Setup Time,150
+2026-02-10,Vikas Kadam,Shift 1,Yes,CNC-54,Setup Time,360

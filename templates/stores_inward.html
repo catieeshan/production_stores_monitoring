@@ -1,0 +1,209 @@
+{% extends "stores_home.html" %}
+
+{% block stores_content %}
+
+<h2>⬇ Stock Inward Entry</h2>
+<hr>
+
+<!-- ============================= -->
+<!-- INWARD ENTRY FORM -->
+<!-- ============================= -->
+<div class="form-card">
+
+    <form method="post" action="/stores/save_inward">
+
+        <div class="form-row">
+
+            <label>Date</label>
+            <input type="date" name="date" required>
+
+            <label>Invoice No.</label>
+            <input type="text" name="invoice" required>
+
+            <label>Item Code</label>
+            <select name="item" required>
+
+                {% for i in items %}
+                    <option value="{{ i.code }}">{{ i.label }}</option>
+                {% endfor %}
+
+            </select>
+
+            <label>Quantity</label>
+            <input type="number" step="0.01" name="qty" required>
+
+            <label>Vendor Name</label>
+            <input type="text" name="vendor" required>
+
+            <label>Received By</label>
+            <input type="text" name="received_by" required>
+
+            <label>Remarks</label>
+            <input type="text" name="remarks">
+
+        </div>
+
+        <div class="form-actions">
+            <button class="action-save">💾 Save Entry</button>
+        </div>
+
+    </form>
+
+</div>
+
+<hr>
+
+<!-- ============================= -->
+<!-- INWARD REGISTER TABLE -->
+<!-- ============================= -->
+<h3>📋 Inward Register</h3>
+
+<div class="table-container">
+    <table class="modern-table">
+
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Invoice</th>
+                <th>Item</th>
+                <th>Qty</th>
+                <th>Vendor</th>
+                <th>Received By</th>
+                <th>Remarks</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for r in records %}
+            {% if request.args.get("edit_ts") == r["Timestamp"] %}
+
+            <!-- ================= EDIT MODE ================= -->
+            <tr>
+                <form method="post" action="/stores/edit_inward">
+
+                    <input type="hidden" name="old_timestamp" value="{{ r['Timestamp'] }}">
+
+                    <td align="center">
+                        <input class="table-input" type="date" name="date" value="{{ r['Date'] }}" required>
+                    </td>
+
+                    <td align="center">
+                        <input class="table-input" name="invoice" value="{{ r['Ref_No'] }}" required>
+                    </td>
+
+                    <td align="center">
+                        <select class="table-input" name="item">
+
+                            {% for i in items %}
+                                <option value="{{ i.code }}"
+                                {% if i.code == r["Item"] %}selected{% endif %}>
+                                {{ i.label }}
+                                </option>
+                            {% endfor %}
+
+                        </select>
+                    </td>
+
+                    <td align="center">
+                        <input class="table-input" type="number" step="0.01" name="qty" value="{{ r['Qty'] }}" required>
+                    </td>
+
+                    <td align="center">
+                        <input class="table-input" name="vendor" value="{{ r['Supplier'] }}" required>
+                    </td>
+
+                    <td align="center">
+                        <input class="table-input" name="received_by"
+                            value="{{ r['Remarks'].split('|')[0].replace('Received By:','').strip() }}"
+                            required>
+                    </td>
+
+                    <td align="center">
+                        <input class="table-input" name="remarks"
+                            value="{{ r['Remarks'].split('|')[1] if '|' in r['Remarks'] else '' }}">
+                    </td>
+
+                    <td align="center" class="table-actions">
+                        <input type="password" name="code" placeholder="Code" required style="width:70px;">
+                        <button class="action-save">💾 Save</button>
+                        <a class="action-cancel" href="/stores/inward">❌ Cancel</a>
+                    </td>
+
+                </form>
+            </tr>
+
+            {% else %}
+
+            <!-- ================= NORMAL ROW ================= -->
+            <tr>
+
+                <td align="center">{{ r["Date"] }}</td>
+                <td align="center">{{ r["Ref_No"] }}</td>
+                <td align="center">{{ r["Item"] }}</td>
+                <td align="center">{{ r["Qty"] }}</td>
+                <td align="center">{{ r["Supplier"] }}</td>
+
+                <td align="center">
+                    {{ r["Remarks"].split('|')[0].replace("Received By:","") }}
+                </td>
+
+                <td align="center">
+                    {% if "|" in r["Remarks"] %}
+                        {{ r["Remarks"].split('|')[1] }}
+                    {% endif %}
+                </td>
+
+                <td align="center">
+
+                    <a class="action-btn action-edit"
+                       href="/stores/inward?edit_ts={{ r['Timestamp'] }}">
+                       ✏️ Edit
+                    </a>
+
+                    <a class="action-btn action-delete"
+                        onclick="deleteEntry(`{{ r['Timestamp'] }}`)">
+                       🗑️ Delete
+                    </a>
+
+                </td>
+
+            </tr>
+
+            {% endif %}
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+</div>
+
+<!-- ================= DELETE SCRIPT ================= -->
+<script>
+function deleteEntry(ts){
+
+    let code = prompt("Enter verification code to delete:");
+
+    if(!code) return;
+
+    let form = new FormData();
+    form.append("timestamp", ts);
+    form.append("code", code);
+
+    fetch("/stores/delete_inward",{
+        method:"POST",
+        body:form
+    })
+    .then(res=>{
+        if(res.status==200){
+            location.reload();
+        }
+        else{
+            alert("Invalid code");
+        }
+    });
+}
+</script>
+
+{% endblock %}

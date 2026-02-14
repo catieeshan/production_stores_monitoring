@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Machine Shop Production Monitoring System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <!-- ========================================= -->
+    <!-- TOP BAR -->
+    <!-- ========================================= -->
+    <div class="topbar">
+        Machine Shop Production Monitoring System
+    </div>
+
+    <!-- ========================================= -->
+    <!-- MAIN LAYOUT -->
+    <!-- ========================================= -->
+    <div class="layout">
+
+        <!-- ===== SIDEBAR ===== -->
+        <div class="sidebar">            
+
+            <div class="menu-section">
+                <div class="menu-title">Master Setup</div>
+                <div class="menu-item" onclick="location.href='/part_master'">📦 Part Master</div>
+                <div class="menu-item" onclick="location.href='/operator_master'">👷 Operator Master</div>
+                <div class="menu-item" onclick="location.href='/machine_master'">🏭 Machine Master</div>
+            </div>
+
+            <hr>
+
+            <div class="menu-section">
+                <div class="menu-title">Transactions</div>
+                <div class="menu-item" onclick="location.href='/production_entry'">📝 Production Entry</div>
+                <div class="menu-item" onclick="location.href='/operator_absenteeism'">🚫 Operator Absenteeism</div>
+            </div>
+
+            <hr>
+
+            <div class="menu-section">
+                <div class="menu-title">Reports</div>
+                <div class="menu-item" onclick="location.href='/reports/daily'">
+                    📊 Reports
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="menu-section">
+                <div class="menu-title">Management</div>
+
+                <div class="menu-item" onclick="location.href='/management_dashboard'">
+                    📊 Management Dashboard
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="menu-section">
+                <div class="menu-item" onclick="location.href='/'">⬅ Back to Home Page</div>
+            </div>
+
+        </div>
+
+        <!-- ===== MAIN CONTENT AREA ===== -->
+        <div class="main-content">
+            <h2>Welcome</h2>
+            <p>
+                This system is designed to manage master data, capture daily production,
+                monitor OEE, analyze operator productivity, and provide management dashboards
+                for your CNC and VMC machine shop.
+            </p>
+
+            <p>
+                Please select a module from the left menu to begin.
+            </p>
+        </div>
+
+    </div>
+
+</body>
+</html>

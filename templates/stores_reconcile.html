@@ -1,0 +1,221 @@
+{% extends "stores_home.html" %}
+{% block stores_content %}
+
+<h2>🧾 Stock Reconciliation</h2>
+<hr>
+
+<!-- ===================================================== -->
+<!-- MANUAL ENTRY -->
+<!-- ===================================================== -->
+<div class="form-card">
+
+    <h3>Manual Reconciliation Entry</h3>
+
+    <form method="post" action="/stores/save_reconcile">
+
+        <div class="form-row">
+
+            <label>Date</label>
+            <input type="date" name="date" required>
+
+            <label>Item Code</label>
+            <select name="item" required>
+                {% for i in items %}
+                    <option value="{{ i }}">{{ i }}</option>
+                {% endfor %}
+            </select>
+
+            <label>Type of Physical Stock</label>
+            <select name="stock_type" required>
+                <option value="RM">RM Stock</option>
+                <option value="WIP">WIP Stock</option>
+                <option value="FG">FG Stock</option>
+                <option value="REJECT">Reject Stock</option>
+                <option value="OPENING">Opening Stock</option>
+            </select>
+
+            <label>Physical Qty Found</label>
+            <input type="number" step="0.01" name="qty" required>
+
+            <label>Remarks</label>
+            <input type="text" name="remarks">
+
+        </div>
+
+        <div class="form-actions">
+            <button class="action-save">💾 Save Reconciliation</button>
+        </div>
+
+    </form>
+
+</div>
+
+<hr>
+
+<!-- ============================================= -->
+<!-- EXCEL UPLOAD RECONCILIATION -->
+<!-- ============================================= -->
+<div class="form-card">
+
+    <h3>📤 Upload Stock Reconciliation (Excel)</h3>
+
+    <form method="post" action="/stores/upload_reconcile_excel" enctype="multipart/form-data">
+
+        <div class="form-row">
+            <label>Select Excel File</label>
+            <input type="file" name="file" required>
+        </div>
+
+        <div class="form-actions">
+            <button class="action-save">⬆ Upload & Reconcile</button>
+        </div>
+
+    </form>
+
+    <div style="margin-top:10px;font-size:13px;color:#555;">
+        <b>Excel Format Required:</b><br><br>
+
+        Item Code | RM Stock | WIP Stock | FG Stock | Reject Stock | Opening Stock | Remarks
+        <br><br>
+
+        <b>Notes:</b><br>
+        • Enter physical counted stock<br>
+        • System auto-adjusts difference<br>
+        • Leave column blank or 0 if not applicable<br>
+        • Opening Stock used only for first-time setup
+    </div>
+
+</div>
+
+<hr>
+
+<!-- ===================================================== -->
+<!-- HISTORY -->
+<!-- ===================================================== -->
+<h3>Last 50 Reconciliation Entries</h3>
+
+<div class="table-container">
+    <table class="modern-table">
+
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Item</th>
+                <th>Type</th>
+                <th>Qty Adj</th>
+                <th>Remarks</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for r in records %}
+            {% if request.args.get("edit_ts") == r["Timestamp"] %}
+
+            <!-- ================= EDIT MODE ================= -->
+            <tr>
+                <form method="post" action="/stores/edit_reconcile">
+
+                    <input type="hidden" name="old_timestamp" value="{{ r['Timestamp'] }}">
+
+                    <td align="center">
+                        <input class="table-input" type="date" name="date"
+                               value="{{ r['Date'] }}" required>
+                    </td>
+
+                    <td align="center">
+                        <select class="table-input" name="item">
+                            {% for i in items %}
+                            <option value="{{ i }}"
+                                {% if i == r["Item"] %}selected{% endif %}>
+                                {{ i }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </td>
+
+                    <td align="center">
+                        {{ r["Inward_Type"] }}
+                    </td>
+
+                    <td align="center">
+                        <input class="table-input" type="number" step="0.01"
+                               name="qty" value="{{ r['Qty'] }}" required>
+                    </td>
+
+                    <td align="center">
+                        <input class="table-input" name="remarks"
+                               value="{{ r['Remarks'] }}">
+                    </td>
+
+                    <td align="center" class="table-actions">
+                        <input type="password" name="code"
+                               placeholder="Code" required style="width:70px;">
+                        <button class="action-save">💾 Save</button>
+                        <a class="action-cancel" href="/stores/reconcile">❌ Cancel</a>
+                    </td>
+
+                </form>
+            </tr>
+
+            {% else %}
+
+            <!-- ================= NORMAL ROW ================= -->
+            <tr>
+
+                <td align="center">{{ r["Date"] }}</td>
+                <td align="center">{{ r["Item"] }}</td>
+                <td align="center">{{ r["Inward_Type"] }}</td>
+                <td align="center">{{ r["Qty"] }}</td>
+                <td align="center">{{ r["Remarks"] }}</td>
+
+                <td align="center">
+
+                    <a class="action-btn action-edit"
+                       href="/stores/reconcile?edit_ts={{ r['Timestamp'] }}">
+                        ✏️ Edit
+                    </a>
+
+                    <a class="action-btn action-delete"
+                       onclick="deleteRecon(`{{ r['Timestamp'] }}`)">
+                        🗑️ Delete
+                    </a>
+
+                </td>
+
+            </tr>
+
+            {% endif %}
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+</div>
+
+<script>
+function deleteRecon(ts){
+
+    let code = prompt("Enter verification code:");
+    if(!code) return;
+
+    let form = new FormData();
+    form.append("timestamp", ts);
+    form.append("code", code);
+
+    fetch("/stores/delete_reconcile",{
+        method:"POST",
+        body:form
+    })
+    .then(res=>{
+        if(res.status==200){
+            location.reload();
+        }else{
+            alert("Invalid code");
+        }
+    });
+}
+</script>
+
+{% endblock %}
