@@ -110,7 +110,7 @@ def get_dashboard_kpis():
         loss_df["Date"] = pd.to_datetime(loss_df["Date"], errors="coerce").dt.date
         loss_df["Time_Min"] = pd.to_numeric(loss_df["Time_Min"], errors="coerce").fillna(0)
 
-    # ---------------- LAST 3 WORKING DAYS ----------------
+    # ---------------- LAST WORKING DAYS ----------------
     available_days = sorted(
         d for d in prod_df["Date"].dropna().unique()
         if d.weekday() != 3  # skip Thursday
@@ -119,7 +119,12 @@ def get_dashboard_kpis():
     if len(available_days) == 0:
         return {}
 
+    # 🔵 For KPI + Top Parts + Loss → last 3 days
     last_3_days = available_days[-3:]
+
+    # 🟣 For Shop Performance → last 10 working days
+    last_10_days = available_days[-10:]
+
     prev_day = last_3_days[-1]
 
     # ==================================================
@@ -231,7 +236,7 @@ def get_dashboard_kpis():
     # ==================================================
     performance = []
 
-    for d in last_3_days:
+    for d in last_10_days:
         ddf = prod_df[prod_df["Date"] == d]
 
         machines = ddf["Machine"].nunique()
