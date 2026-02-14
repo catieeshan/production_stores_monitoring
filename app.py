@@ -67,6 +67,76 @@ if not os.path.exists(ABSENTEEISM_FILE):
     )
 
 # =========================================
+# 🔐 GOOGLE DRIVE AUTO BACKUP ENGINE
+# =========================================
+import zipfile
+from datetime import datetime
+
+def backup_to_drive():
+    """
+    Auto backup all CSV data to Google Drive
+    Runs silently. Never breaks main app.
+    """
+    try:
+        from google.oauth2 import service_account
+        from googleapiclient.discovery import build
+        from googleapiclient.http import MediaFileUpload
+
+        KEY_FILE = "gdrive_key.json"
+        FOLDER_NAME = "CATI_APP_BACKUP"
+
+        if not os.path.exists(KEY_FILE):
+            return  # skip silently if key missing
+
+        # ---------------- AUTH ----------------
+        SCOPES = ['https://www.googleapis.com/auth/drive']
+        creds = service_account.Credentials.from_service_account_file(
+            KEY_FILE, scopes=SCOPES
+        )
+        service = build('drive', 'v3', credentials=creds)
+
+        # ---------------- FIND BACKUP FOLDER ----------------
+        results = service.files().list(
+            q=f"name='{FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder'",
+            fields="files(id, name)"
+        ).execute()
+
+        items = results.get('files', [])
+        if not items:
+            return
+
+        folder_id = items[0]['id']
+
+        # ---------------- CREATE ZIP ----------------
+        zip_name = f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
+
+        with zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for root, dirs, files in os.walk("data"):
+                for file in files:
+                    if file.endswith(".csv"):
+                        full_path = os.path.join(root, file)
+                        zipf.write(full_path, os.path.basename(full_path))
+
+        # ---------------- UPLOAD ----------------
+        file_metadata = {
+            'name': zip_name,
+            'parents': [folder_id]
+        }
+
+        media = MediaFileUpload(zip_name, resumable=True)
+
+        service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id'
+        ).execute()
+
+        os.remove(zip_name)
+
+    except Exception as e:
+        print("Backup skipped:", e)
+
+# =========================================
 # MANAGEMENT DASHBOARD – KPI HELPERS
 # =========================================
 
@@ -476,6 +546,7 @@ def part_master():
 
                 df.to_csv(PART_MASTER_FILE, index=False)
 
+        backup_to_drive()
         return redirect(url_for("part_master"))
 
     # ==============================
@@ -489,7 +560,7 @@ def part_master():
 
     if selected_part:
         operations = df[df["Part Number"] == selected_part].to_dict(orient="records")
-
+    
     return render_template(
         "part_master.html",
         parts=parts,
@@ -512,6 +583,7 @@ def delete_part_op():
 
     df.to_csv(PART_MASTER_FILE, index=False)
 
+    backup_to_drive()
     return redirect(url_for("part_master", part=part))
 
 # =========================================
@@ -541,7 +613,8 @@ def edit_part_op():
     df.loc[mask, "Target Per Hour"] = target_per_hour
 
     df.to_csv(PART_MASTER_FILE, index=False)
-
+    
+    backup_to_drive()
     return redirect(url_for("part_master", part=part))
 
 # =========================================
@@ -610,6 +683,7 @@ def operator_master():
 
                 df.to_csv(OPERATOR_MASTER_FILE, index=False)
 
+        backup_to_drive()
         return redirect(url_for("operator_master"))
 
     # ==============================
@@ -643,6 +717,7 @@ def delete_operator():
     df = df[df["Operator ID"] != op_id]
     df.to_csv(OPERATOR_MASTER_FILE, index=False)
 
+    backup_to_drive()
     return redirect(url_for("operator_master"))
 
 # =========================================
@@ -669,6 +744,7 @@ def edit_operator():
 
     df.to_csv(OPERATOR_MASTER_FILE, index=False)
 
+    backup_to_drive()
     return redirect(url_for("operator_master"))
 
 # =========================================
@@ -737,6 +813,7 @@ def machine_master():
 
                 df.to_csv(MACHINE_MASTER_FILE, index=False)
 
+        backup_to_drive()
         return redirect(url_for("machine_master"))
 
     # ==============================
@@ -754,7 +831,7 @@ def machine_master():
         ]
 
     edit_id = request.args.get("edit_id")
-
+    
     return render_template(
         "machine_master.html",
         records=records,
@@ -774,6 +851,7 @@ def delete_machine():
     df = df[df["Machine No"] != machine_no]
     df.to_csv(MACHINE_MASTER_FILE, index=False)
 
+    backup_to_drive()
     return redirect(url_for("machine_master"))
 
 # =========================================
@@ -800,6 +878,7 @@ def edit_machine():
 
     df.to_csv(MACHINE_MASTER_FILE, index=False)
 
+    backup_to_drive()
     return redirect(url_for("machine_master"))
 
 # =========================================
@@ -948,6 +1027,7 @@ def save_production_entry():
     # -----------------------------
     # BACK TO ENTRY PAGE
     # -----------------------------
+    backup_to_drive()
     return redirect(url_for("production_entry"))
 
 # OPERATOR ABSENTEEISM ENTRY
@@ -3266,6 +3346,8 @@ def save_stores_inward():
 
     ledger_df.to_csv(STORE_LEDGER_FILE, index=False)
 
+    backup_to_drive()
+
     return redirect("/stores/inward")
 
 # =========================================
@@ -3297,6 +3379,7 @@ def delete_inward():
         return "NOT_FOUND", 404
 
     df.to_csv(STORE_LEDGER_FILE, index=False)
+    backup_to_drive()
     return "OK", 200
 
 # =====================================================
@@ -3348,6 +3431,8 @@ def edit_inward():
     df.loc[mask, "Remarks"] = f"Received By: {received_by} | {remarks}"
 
     df.to_csv(STORE_LEDGER_FILE, index=False)
+
+    backup_to_drive()
 
     return redirect("/stores/inward")
 
@@ -3505,6 +3590,8 @@ def save_issue():
     ledger_df = pd.concat([ledger_df, pd.DataFrame([new_row])], ignore_index=True)
     ledger_df.to_csv(STORE_LEDGER_FILE, index=False)
 
+    backup_to_drive()
+
     return redirect("/stores/issue")
 
 # =====================================================
@@ -3529,6 +3616,7 @@ def delete_issue():
         return "NOT_FOUND", 404
 
     df.to_csv(STORE_LEDGER_FILE, index=False)
+    backup_to_drive()
     return "OK", 200
 
 # =====================================================
@@ -3581,6 +3669,8 @@ def edit_issue():
     ledger_df.loc[mask, "Remarks"] = f"{purpose} | Issued By: {issued_by} | {remarks}"
 
     ledger_df.to_csv(STORE_LEDGER_FILE, index=False)
+
+    backup_to_drive()
 
     return redirect("/stores/issue")
 
@@ -3719,6 +3809,8 @@ def save_return():
 
     ledger_df.to_csv(STORE_LEDGER_FILE, index=False)
 
+    backup_to_drive()
+
     return redirect("/stores/return")
 
 # =====================================================
@@ -3743,6 +3835,7 @@ def delete_return():
         return "NOT_FOUND", 404
 
     df.to_csv(STORE_LEDGER_FILE, index=False)
+    backup_to_drive()
     return "OK", 200
 
 
@@ -3803,6 +3896,8 @@ def edit_return():
     df.loc[mask, "Remarks"] = f"{rtype} | Received By: {received_by} | {remarks}"
 
     df.to_csv(STORE_LEDGER_FILE, index=False)
+
+    backup_to_drive()
 
     return redirect("/stores/return")
 
@@ -3986,6 +4081,8 @@ def save_outward():
 
     ledger_df.to_csv(STORE_LEDGER_FILE, index=False)
 
+    backup_to_drive()
+
     return redirect("/stores/outward")
 
 # =====================================================
@@ -4003,6 +4100,8 @@ def delete_outward():
     df = pd.read_csv(STORE_LEDGER_FILE)
     df = df[df["Timestamp"] != ts]
     df.to_csv(STORE_LEDGER_FILE,index=False)
+
+    backup_to_drive()
 
     return "OK",200
 
@@ -4118,6 +4217,7 @@ def save_reconcile():
 
         ledger_df = pd.concat([ledger_df, pd.DataFrame([new_row])], ignore_index=True)
         ledger_df.to_csv(STORE_LEDGER_FILE, index=False)
+        backup_to_drive()
         return redirect("/stores/reconcile")
 
     # ---------- NORMAL RECON ----------
@@ -4165,7 +4265,7 @@ def save_reconcile():
 
     ledger_df = pd.concat([ledger_df, pd.DataFrame([new_row])], ignore_index=True)
     ledger_df.to_csv(STORE_LEDGER_FILE, index=False)
-
+    backup_to_drive()
     return redirect("/stores/reconcile")
 
 # =====================================================
@@ -4244,6 +4344,8 @@ def upload_reconcile_excel():
 
     ledger_df.to_csv(STORE_LEDGER_FILE, index=False)
 
+    backup_to_drive()
+
     return redirect("/stores/reconcile")
 
 # =====================================================
@@ -4261,6 +4363,8 @@ def delete_reconcile():
     df = pd.read_csv(STORE_LEDGER_FILE)
     df = df[df["Timestamp"] != ts]
     df.to_csv(STORE_LEDGER_FILE, index=False)
+
+    backup_to_drive()
 
     return "OK",200
 
