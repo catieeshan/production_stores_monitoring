@@ -1,0 +1,6 @@
+gdrive_key.json
+data/
+uploads/
+__pycache__/
+*.pyc
+.env
