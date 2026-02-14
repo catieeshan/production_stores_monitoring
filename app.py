@@ -439,11 +439,9 @@ def part_master():
         # -------- EXCEL UPLOAD --------
         if "excel_file" in request.files:
             file = request.files["excel_file"]
-            if file.filename != "":
-                filepath = os.path.join(UPLOAD_FOLDER, file.filename)
-                file.save(filepath)
+            if file and file.filename != "":
 
-                upload_df = pd.read_excel(filepath)
+                upload_df = pd.read_excel(file)
 
                 for _, row in upload_df.iterrows():
                     part_no = str(row["Part Number"]).strip()
@@ -582,11 +580,9 @@ def operator_master():
         # -------- EXCEL UPLOAD --------
         if "excel_file" in request.files:
             file = request.files["excel_file"]
-            if file.filename != "":
-                filepath = os.path.join(UPLOAD_FOLDER, file.filename)
-                file.save(filepath)
+            if file and file.filename != "":
 
-                upload_df = pd.read_excel(filepath)
+                upload_df = pd.read_excel(file)
 
                 for _, row in upload_df.iterrows():
                     op_id = str(row["Operator ID"]).strip()
@@ -711,11 +707,9 @@ def machine_master():
         # -------- EXCEL UPLOAD --------
         if "excel_file" in request.files:
             file = request.files["excel_file"]
-            if file.filename != "":
-                filepath = os.path.join(UPLOAD_FOLDER, file.filename)
-                file.save(filepath)
-
-                upload_df = pd.read_excel(filepath)
+            if file and file.filename != "":
+                
+                upload_df = pd.read_excel(file)
 
                 for _, row in upload_df.iterrows():
                     machine_no = str(row["Machine No"]).strip()
@@ -3002,10 +2996,8 @@ def stores_item_master():
             file = request.files["excel_file"]
 
             if file.filename != "":
-                filepath = os.path.join(UPLOAD_FOLDER, file.filename)
-                file.save(filepath)
-
-                upload_df = pd.read_excel(filepath)
+                
+                upload_df = pd.read_excel(file)
 
                 # Ensure correct columns
                 required_cols = [
