@@ -147,18 +147,22 @@ def get_dashboard_kpis():
             top_parts_daily[day.strftime("%d-%m-%Y")] = {}
             continue
 
-        # Pick highest operation executed per part on that day
-        idx = (
-            day_df
-            .groupby("Part")["Op_No"]
-            .idxmax()
-            .dropna()
+        # 🔥 STEP 1: find highest operation per part that day
+        final_ops = (
+            day_df.groupby("Part")["Op_No"]
+            .max()
+            .reset_index()
+            .rename(columns={"Op_No": "FinalOp"})
         )
 
-        last_op_df = day_df.loc[idx]
+        day_df = day_df.merge(final_ops, on="Part", how="left")
 
+        # 🔥 STEP 2: keep ONLY final operation rows
+        final_df = day_df[day_df["Op_No"] == day_df["FinalOp"]]
+
+        # 🔥 STEP 3: sum Good Qty of final operation
         part_qty = (
-            last_op_df
+            final_df
             .groupby("Part")["Good_Qty"]
             .sum()
             .to_dict()
@@ -265,7 +269,7 @@ def get_dashboard_kpis():
             "total_good_qty": total_good_qty,
             "total_defects": total_defects
         },
-        "top_parts": top_parts_table,   # ✅ THIS WAS THE ISSUE
+        "top_parts": top_parts_table,
         "loss_pies": loss_pies,
         "performance": performance
     }
