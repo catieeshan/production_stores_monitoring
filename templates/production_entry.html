@@ -24,22 +24,35 @@
            OPERATION FILTERING (MAIN MACHINE)
         ================================= */
         function updateOperationOptions(row) {
+
             const part = row.querySelector(".part-select").value;
             const opSelect = row.querySelector(".op-select");
             const machineNo = document.getElementById("mainMachineSelect").value;
             const machineType = machineTypes[machineNo];
 
+            // clear dropdown
             opSelect.innerHTML = "";
+
+            // always add Select first
+            const defaultOpt = document.createElement("option");
+            defaultOpt.value = "";
+            defaultOpt.textContent = "Select";
+            opSelect.appendChild(defaultOpt);
+
             if (!part || !machineType || !partOps[part]) return;
 
             partOps[part].forEach(item => {
                 if (item.machine_type === machineType) {
+
                     const opt = document.createElement("option");
                     opt.value = item.op;
                     opt.textContent = item.op;
                     opSelect.appendChild(opt);
                 }
             });
+
+            // keep default selected
+            opSelect.value = "";
         }
 
         function onMainMachineChange() {
@@ -260,7 +273,9 @@
                     </select>
                 </td>
                 <td>
-                    <select class="table-input op-select"></select>
+                    <select class="table-input op-select">
+                        <option value="">Select</option>
+                    </select>
                 </td>
                 <td>
                     <input class="table-input time-spent" type="number" min="0"
@@ -291,6 +306,8 @@
 
             tbody.appendChild(tr);
             renumberMain();
+            applyRowGuidedFlow(tr);
+            applySuperFastNavigation(tr);
         }
 
         function renumberMain() {
@@ -327,7 +344,9 @@
                     </select>
                 </td>
                 <td>
-                    <select class="table-input other-op"></select>
+                    <select class="table-input other-op">
+                        <option value="">Select</option>
+                    </select>
                 </td>
                 <td>
                     <input class="table-input other-time" type="number" min="0"
@@ -361,11 +380,18 @@
         }
 
         function updateOtherMachineOps(row) {
+
             const machineNo = row.querySelector(".other-machine").value;
             const part = row.querySelector(".other-part").value;
             const opSelect = row.querySelector(".other-op");
 
             opSelect.innerHTML = "";
+
+            // default select option
+            const def = document.createElement("option");
+            def.value = "";
+            def.textContent = "Select";
+            opSelect.appendChild(def);
 
             if (!machineNo || !part) return;
 
@@ -374,12 +400,15 @@
 
             partOps[part].forEach(item => {
                 if (item.machine_type === machineType) {
+
                     const opt = document.createElement("option");
                     opt.value = item.op;
                     opt.textContent = item.op;
                     opSelect.appendChild(opt);
                 }
             });
+
+            opSelect.value = "";
         }
 
         function renumberOther() {
@@ -436,8 +465,250 @@
         window.onload = function () {
             updateAvailableTime();
             addRow();
+            disableProductionSection();
         };
+
+        function showTutorial(el, text){
+            const old = document.querySelector(".tutorial-popup");
+            if(old) old.remove();
+
+            const rect = el.getBoundingClientRect();
+            const popup = document.createElement("div");
+            popup.className="tutorial-popup";
+            popup.innerText=text;
+
+            document.body.appendChild(popup);
+
+            popup.style.top = (window.scrollY + rect.top - 35) + "px";
+            popup.style.left = (window.scrollX + rect.left) + "px";
+
+            setTimeout(()=>{ popup.remove(); }, 2500);
+        }
+
+        /* ================= HEADER GUIDED FLOW ================= */
+        document.addEventListener("DOMContentLoaded", function(){
+
+            const dateField = document.querySelector("input[name='date']");
+            const operatorField = document.querySelector("select[name='operator']");
+            const shiftField = document.querySelector("select[name='shift']");
+            const otField = document.getElementById("otSelect");
+            const machineField = document.getElementById("mainMachineSelect");
+
+            // disable all except date
+            operatorField.disabled = true;
+            shiftField.disabled = true;
+            otField.disabled = true;
+            machineField.disabled = true;
+
+            showTutorial(dateField,"Select Date");
+
+            dateField.addEventListener("change",()=>{
+                operatorField.disabled=false;
+                showTutorial(operatorField,"Select Operator");
+            });
+
+            operatorField.addEventListener("change",()=>{
+                shiftField.disabled=false;
+                showTutorial(shiftField,"Select Shift");
+            });
+
+            shiftField.addEventListener("change",()=>{
+                otField.disabled=false;
+                showTutorial(otField,"Select OT");
+            });
+
+            otField.addEventListener("change",()=>{
+                machineField.disabled=false;
+                updateAvailableTime();
+                showTutorial(machineField,"Select Main Machine");
+            });
+
+            machineField.addEventListener("change",()=>{
+                if(machineField.value){
+                    enableProductionSection();
+                    showTutorial(document.querySelector(".part-select"),"Start entering production");
+                }
+            });
+
+        });
+
+        function disableProductionSection(){
+
+            // disable add row button
+            document.querySelectorAll(".action-save").forEach(btn=>{
+                if(btn.innerText.includes("Add Row")){
+                    btn.disabled = true;
+                    btn.style.opacity = 0.5;
+                }
+            });
+
+            // disable main table inputs
+            document.querySelectorAll("#mainTableBody input, #mainTableBody select")
+                .forEach(el=> el.disabled = true);
+
+            // disable loss section
+            const loss = document.getElementById("lossReasonSelect");
+            if(loss) loss.disabled = true;
+
+            // disable save button
+            document.getElementById("saveShiftBtn").disabled = true;
+            document.getElementById("saveShiftBtn").style.opacity = 0.5;
+        }
+
+
+        function enableProductionSection(){
+
+            // enable add row
+            document.querySelectorAll(".action-save").forEach(btn=>{
+                if(btn.innerText.includes("Add Row")){
+                    btn.disabled = false;
+                    btn.style.opacity = 1;
+                }
+            });
+
+            // enable first row part select
+            document.querySelectorAll(".part-select")
+                .forEach(el=> el.disabled = false);
+
+            // enable loss dropdown
+            const loss = document.getElementById("lossReasonSelect");
+            if(loss) loss.disabled = false;
+
+            // enable save button
+            document.getElementById("saveShiftBtn").disabled = false;
+            document.getElementById("saveShiftBtn").style.opacity = 1;
+        }
+
+        /* ======================================================
+        ROW STEP CONTROL — enables next field step by step
+        ====================================================== */
+        function applyRowGuidedFlow(row){
+
+            const part = row.querySelector(".part-select");
+            const op = row.querySelector(".op-select");
+            const time = row.querySelector(".time-spent");
+            const qty = row.querySelector(".qty");
+            const cast = row.querySelector(".cast-rej");
+            const mach = row.querySelector(".mach-rej");
+
+            // initial state
+            op.disabled = true;
+            time.disabled = true;
+            qty.disabled = true;
+            cast.disabled = true;
+            mach.disabled = true;
+
+            /* ===== PART SELECTED ===== */
+            part.addEventListener("change",()=>{
+
+                updateOperationOptions(row);
+
+                if(part.value){
+                    op.disabled = false;
+                    showTutorial(op,"Select Operation");
+                }else{
+                    op.disabled = true;
+                }
+            });
+
+            /* ===== OPERATION SELECTED ===== */
+            op.addEventListener("change",()=>{
+                if(op.value){
+                    time.disabled = false;
+                    showTutorial(time,"Enter Time");
+                }else{
+                    time.disabled = true;
+                }
+            });
+
+            /* ===== TIME ENTERED ===== */
+            time.addEventListener("input",()=>{
+                if(time.value){
+                    qty.disabled = false;
+                    showTutorial(qty,"Enter Quantity");
+                }else{
+                    qty.disabled = true;
+                }
+            });
+
+            /* ===== QTY ENTERED ===== */
+            qty.addEventListener("input",()=>{
+                if(qty.value){
+                    cast.disabled = false;
+                    mach.disabled = false;
+                    showTutorial(cast,"Enter rejection if any");
+                }else{
+                    cast.disabled = true;
+                    mach.disabled = true;
+                }
+            });
+        }
+
+        /* ==========================================================
+        SUPERFAST OPERATOR MODE (ENTER KEY NAVIGATION)
+        ========================================================== */
+        function applySuperFastNavigation(row){
+
+            const part = row.querySelector(".part-select");
+            const op = row.querySelector(".op-select");
+            const time = row.querySelector(".time-spent");
+            const qty = row.querySelector(".qty");
+            const cast = row.querySelector(".cast-rej");
+            const mach = row.querySelector(".mach-rej");
+
+            function focusNext(current, next){
+                current.addEventListener("keydown", function(e){
+                    if(e.key === "Enter"){
+                        e.preventDefault();
+                        if(!next.disabled) next.focus();
+                    }
+                });
+            }
+
+            focusNext(part, op);
+            focusNext(op, time);
+            focusNext(time, qty);
+            focusNext(qty, cast);
+            focusNext(cast, mach);
+
+            // LAST FIELD → NEW ROW
+            mach.addEventListener("keydown", function(e){
+                if(e.key === "Enter"){
+                    e.preventDefault();
+
+                    // create new row
+                    addRow();
+
+                    // focus new row first part
+                    setTimeout(()=>{
+                        const rows = document.querySelectorAll("#mainTableBody tr");
+                        const lastRow = rows[rows.length-1];
+                        const newPart = lastRow.querySelector(".part-select");
+                        newPart.focus();
+                    },80);
+                }
+            });
+        }
+
     </script>
+
+    <style>
+    .tutorial-popup{
+        position: absolute;
+        background: #1e88e5;
+        color: white;
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 13px;
+        z-index: 9999;
+        box-shadow:0 3px 8px rgba(0,0,0,0.25);
+        animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn{
+        from{opacity:0; transform:translateY(-5px)}
+        to{opacity:1; transform:translateY(0)}
+    }
+    </style>
 </head>
 
 <body>
@@ -472,6 +743,7 @@
 
                     <label>Operator Name</label>
                     <select name="operator" required>
+                        <option value="">Select</option>
                         {% for o in operators %}
                             <option>{{ o["Operator Name"] }}</option>
                         {% endfor %}
@@ -479,12 +751,14 @@
 
                     <label>Shift</label>
                     <select name="shift" required>
+                        <option value="">Select</option>
                         <option>Shift 1</option>
                         <option>Shift 2</option>
                     </select>
 
                     <label>OT Present</label>
                     <select id="otSelect" name="ot" onchange="updateAvailableTime()" required>
+                        <option value="">Select</option>
                         <option>No</option>
                         <option>Yes</option>
                     </select>
@@ -494,6 +768,7 @@
                             name="main_machine"
                             onchange="onMainMachineChange()"
                             required>
+                        <option value="">Select</option>
                         {% for m in machines %}
                             <option>{{ m["Machine No"] }}</option>
                         {% endfor %}
