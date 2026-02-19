@@ -4472,6 +4472,191 @@ def stores_inventory():
         low_stock=low_stock
     )
 
+# =========================================================
+# SHOPFLOOR TV DASHBOARD (FINAL ROTATING SYSTEM)
+# =========================================================
+@app.route("/shopfloor_tv")
+def shopfloor_tv():
+
+    # ---------- LOAD DATA ----------
+    main_df = load_csv("data/production_main.csv")
+    other_df = load_csv("data/production_other_machine.csv")
+    part_df = load_csv("data/part_master.csv")
+
+    prod_df = pd.concat([main_df, other_df], ignore_index=True)
+
+    if prod_df.empty:
+        return "<h2>No production data available</h2>"
+
+    # ---------- NORMALIZE ----------
+    prod_df["Date"] = pd.to_datetime(prod_df["Date"], errors="coerce")
+    prod_df["Time_Min"] = pd.to_numeric(prod_df["Time_Min"], errors="coerce").fillna(0)
+    prod_df["Qty"] = pd.to_numeric(prod_df["Qty"], errors="coerce").fillna(0)
+    prod_df["Mach_Rej"] = pd.to_numeric(prod_df.get("Mach_Rej", 0), errors="coerce").fillna(0)
+    prod_df["Cast_Rej"] = pd.to_numeric(prod_df.get("Cast_Rej", 0), errors="coerce").fillna(0)
+    prod_df["Good_Qty"] = pd.to_numeric(prod_df["Good_Qty"], errors="coerce").fillna(0)
+
+    # ---------- LAST PRODUCTION DAY ----------
+    last_date = prod_df["Date"].max()
+    day_df = prod_df[prod_df["Date"] == last_date].copy()
+    last_date_str = last_date.strftime("%d-%m-%Y")
+
+    # ---------- MERGE CYCLE TIME ----------
+    part_df = part_df.rename(columns={
+        "Part Number": "Part",
+        "Operation No": "Operation"
+    })
+
+    part_df["Cycle Time (min)"] = pd.to_numeric(
+        part_df["Cycle Time (min)"], errors="coerce"
+    ).fillna(0)
+
+    day_df = day_df.merge(
+        part_df[["Part", "Operation", "Cycle Time (min)"]],
+        on=["Part", "Operation"],
+        how="left"
+    )
+
+    # =========================================================
+    # MACHINE OEE CALCULATION
+    # =========================================================
+    machines = []
+
+    for machine in sorted(day_df["Machine"].dropna().unique()):
+
+        mdf = day_df[day_df["Machine"] == machine]
+
+        time_spent = mdf["Time_Min"].sum()
+        produced = mdf["Qty"].sum()
+        good = mdf["Good_Qty"].sum()
+
+        expected = (
+            mdf["Time_Min"] / mdf["Cycle Time (min)"]
+        ).replace([float("inf"), -float("inf")], 0).sum()
+
+        available_time = (
+            570 if (mdf["OT"].astype(str).str.lower() == "yes").any() else 480
+        ) * mdf["Shift"].nunique()
+
+        availability = (time_spent / available_time * 100) if available_time else 0
+        performance = (produced / expected * 100) if expected else 0
+        quality = (good / produced * 100) if produced else 0
+        oee = availability * performance * quality / 10000
+
+        machines.append({
+            "machine": machine,
+            "availability": round(availability, 2),
+            "performance": round(performance, 2),
+            "quality": round(quality, 2),
+            "oee": round(oee, 2)
+        })
+
+    # =========================================================
+    # OPERATOR PRODUCTIVITY
+    # =========================================================
+    operator_data = []
+
+    for op in day_df["Operator"].dropna().unique():
+
+        odf = day_df[day_df["Operator"] == op]
+
+        good = odf["Good_Qty"].sum()
+        expected = (
+            odf["Time_Min"] / odf["Cycle Time (min)"]
+        ).replace([float("inf"), -float("inf")], 0).sum()
+
+        prod_pct = (good / expected * 100) if expected else 0
+
+        operator_data.append({
+            "name": op,
+            "value": round(prod_pct, 2)
+        })
+
+    operator_data = sorted(operator_data, key=lambda x: x["value"], reverse=True)
+
+    best_operator = operator_data[0] if operator_data else None
+    lowest_operator = operator_data[-1] if operator_data else None
+
+    plant_productivity = round(
+        sum([o["value"] for o in operator_data]) / len(operator_data), 2
+    ) if operator_data else 0
+
+    # =========================================================
+    # REJECTION LOGIC
+    # =========================================================
+    total_mach_rej = int(day_df["Mach_Rej"].sum())
+    total_cast_rej = int(day_df["Cast_Rej"].sum())
+    total_rejection = total_mach_rej + total_cast_rej
+
+    worst_operator = None
+    if total_mach_rej > 0:
+        op_rej = (
+            day_df.groupby("Operator")["Mach_Rej"]
+            .sum()
+            .reset_index()
+            .sort_values("Mach_Rej", ascending=False)
+        )
+        if not op_rej.empty:
+            r = op_rej.iloc[0]
+            worst_operator = {
+                "name": r["Operator"],
+                "value": int(r["Mach_Rej"])
+            }
+
+    # =========================================================
+    # OPERATOR MACHINING REJECTION (FOR QUALITY SCREEN)
+    # =========================================================
+    operator_rejection = (
+        day_df.groupby("Operator", as_index=False)["Mach_Rej"]
+        .sum()
+    )
+
+    operator_rejection = operator_rejection[
+        operator_rejection["Mach_Rej"] > 0
+    ].sort_values("Mach_Rej", ascending=False)
+
+    # =========================================================
+    # QUALITY SCREEN DATA
+    # =========================================================
+    part_rej = (
+        day_df.groupby("Part", as_index=False)
+        .agg({
+            "Cast_Rej": "sum",
+            "Mach_Rej": "sum"
+        })
+    )
+
+    part_rej["Total"] = part_rej["Cast_Rej"] + part_rej["Mach_Rej"]
+    part_rej = part_rej[part_rej["Total"] > 0]
+    part_rej = part_rej.sort_values("Total", ascending=False).head(5)
+
+    # =========================================================
+    # MACHINE RANKING
+    # =========================================================
+    avg_oee = round(sum([m["oee"] for m in machines]) / len(machines), 2) if machines else 0
+    best_machine = max(machines, key=lambda x: x["oee"]) if machines else None
+    worst_machine = min(machines, key=lambda x: x["oee"]) if machines else None
+
+    total_production = int(day_df["Good_Qty"].sum())
+
+    return render_template(
+        "shopfloor_tv_v2.html",
+        last_date=last_date_str,
+        machines=machines,
+        total_production=total_production,
+        total_rejection=total_rejection,
+        avg_oee=avg_oee,
+        plant_productivity=plant_productivity,
+        best_machine=best_machine,
+        worst_machine=worst_machine,
+        best_operator=best_operator,
+        lowest_operator=lowest_operator,
+        worst_operator=worst_operator,
+        part_rej=part_rej.to_dict(orient="records"),
+        operators=operator_data,
+        operator_rejection=operator_rejection.to_dict(orient="records")
+    )
+
 # =========================================
 # MAIN
 # =========================================
