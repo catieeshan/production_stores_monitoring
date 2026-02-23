@@ -160,6 +160,43 @@ def backup_to_drive():
 
         print("🟢 BACKUP SUCCESSFULLY UPLOADED")
 
+        # =========================================================
+        # AUTO RETENTION POLICY (KEEP LAST 30 BACKUPS)
+        # =========================================================
+        try:
+            print("🔵 Checking old backups for cleanup...")
+
+            # get all zip files inside folder
+            results = service.files().list(
+                q=f"'{folder_id}' in parents and name contains 'backup_'",
+                fields="files(id, name, createdTime)",
+                orderBy="createdTime desc",
+                supportsAllDrives=True,
+                includeItemsFromAllDrives=True
+            ).execute()
+
+            files = results.get("files", [])
+
+            KEEP_LIMIT = 30
+
+            if len(files) > KEEP_LIMIT:
+                old_files = files[KEEP_LIMIT:]
+
+                for f in old_files:
+                    print("🗑 Deleting old backup:", f["name"])
+                    service.files().delete(
+                        fileId=f["id"],
+                        supportsAllDrives=True
+                    ).execute()
+
+                print("🟢 Old backups cleaned")
+
+            else:
+                print("🟢 Retention OK — no deletion needed")
+
+        except Exception as e:
+            print("Retention cleanup skipped:", str(e))
+
         os.remove(zip_name)
 
     except Exception as e:
