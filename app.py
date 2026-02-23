@@ -73,13 +73,13 @@ import zipfile
 from datetime import datetime
 
 def backup_to_drive():
-    """
-    Auto backup all CSV data to Google Drive
-    Bulletproof production version
-    """
-    try:
-        print("🔵 Starting Google Drive backup...")
 
+    print("🔵 Starting Google Drive backup...")
+
+    try:
+        import os
+        import zipfile
+        from datetime import datetime
         from google.oauth2 import service_account
         from googleapiclient.discovery import build
         from googleapiclient.http import MediaFileUpload
@@ -87,41 +87,49 @@ def backup_to_drive():
         KEY_FILE = "/etc/secrets/gdrive_key.json"
         FOLDER_NAME = "CATI_APP_BACKUP"
 
-        if not os.path.exists(KEY_FILE):
-            print("❌ gdrive_key.json NOT FOUND in Render secrets")
-        return
+        print("🔵 Checking key file path:", KEY_FILE)
 
-        # ---------- AUTH ----------
+        if not os.path.exists(KEY_FILE):
+            print("❌ KEY FILE NOT FOUND in Render secrets")
+            return
+
+        print("🟢 Key file found")
+
+        # -------- AUTH --------
         SCOPES = ['https://www.googleapis.com/auth/drive']
+
         creds = service_account.Credentials.from_service_account_file(
             KEY_FILE, scopes=SCOPES
         )
-        service = build('drive', 'v3', credentials=creds)
 
-        # ---------- FIND FOLDER ----------
-        print("🔵 Searching backup folder in Drive...")
+        print("🟢 Google auth created")
+
+        service = build('drive', 'v3', credentials=creds)
+        print("🟢 Drive service built")
+
+        # -------- FIND FOLDER --------
+        print("🔵 Searching backup folder:", FOLDER_NAME)
 
         results = service.files().list(
             q=f"name='{FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder'",
-            spaces='drive',
-            fields="files(id, name)",
-            supportsAllDrives=True,
-            includeItemsFromAllDrives=True
+            fields="files(id, name)"
         ).execute()
 
         items = results.get('files', [])
+        print("Folder search result:", items)
 
         if not items:
-            print("❌ Google Drive folder NOT FOUND:", FOLDER_NAME)
+            print("❌ BACKUP FOLDER NOT FOUND IN DRIVE")
             return
 
         folder_id = items[0]['id']
-        print("✅ Folder found:", folder_id)
+        print("🟢 Folder found:", folder_id)
 
-        # ---------- CREATE ZIP ----------
+        # -------- CREATE ZIP --------
         zip_name = f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
 
-        print("🔵 Creating ZIP...")
+        print("🔵 Creating zip:", zip_name)
+
         with zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_DEFLATED) as zipf:
             for root, dirs, files in os.walk("data"):
                 for file in files:
@@ -129,11 +137,9 @@ def backup_to_drive():
                         full_path = os.path.join(root, file)
                         zipf.write(full_path, os.path.basename(full_path))
 
-        print("✅ ZIP created")
+        print("🟢 Zip created")
 
-        # ---------- UPLOAD ----------
-        print("🔵 Uploading to Google Drive...")
-
+        # -------- UPLOAD --------
         file_metadata = {
             'name': zip_name,
             'parents': [folder_id]
@@ -141,14 +147,15 @@ def backup_to_drive():
 
         media = MediaFileUpload(zip_name, resumable=True)
 
+        print("🔵 Uploading to drive...")
+
         service.files().create(
             body=file_metadata,
             media_body=media,
-            fields='id',
-            supportsAllDrives=True
+            fields='id'
         ).execute()
 
-        print("🟢 BACKUP SUCCESS:", zip_name)
+        print("🟢 BACKUP SUCCESSFULLY UPLOADED")
 
         os.remove(zip_name)
 
