@@ -1,857 +1,707 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>Shopfloor TV V2</title>
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<head>
+    <title>Shopfloor TV V2</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-        <style>
-            body {
-                margin: 0;
-                font-family: Calibri;
-                background: #0b0f14;
-                color: white;
-                overflow: hidden;
-            }
+    <style>
+        body {
+            margin: 0;
+            font-family: Calibri;
+            background: #0b0f14;
+            color: white;
+            overflow: hidden;
+        }
 
-            .ticker {
-                background: #ff4848e5;
-                padding: 10px;
-                font-size: 18px;
-                white-space: nowrap;
-                overflow: hidden;
-            }
+        .ticker {
+            background: #ff4848e5;
+            padding: 10px;
+            font-size: 18px;
+            white-space: nowrap;
+            overflow: hidden;
+        }
 
-            .ticker span {
-                display: inline-block;
-                padding-left: 100%;
-                animation: ticker 35s linear infinite;
-                font-weight: bold;
-                letter-spacing: 1px;
-            }
+        .ticker span {
+            display: inline-block;
+            padding-left: 100%;
+            animation: ticker 35s linear infinite;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
 
-            @keyframes ticker {
-                from { transform: translateX(0); }
-                to { transform: translateX(-100%); }
-            }
+        @keyframes ticker {
+            from { transform: translateX(0); }
+            to   { transform: translateX(-100%); }
+        }
 
-            .screen {
-                display: none;
-                padding: 10px 20px;
-            }
+        .screen {
+            display: none;
+            padding: 10px 20px;
+        }
 
-            .active {
-                display: block;
-            }
+        .active {
+            display: block;
+        }
 
-            .machine-grid {
-                display: grid;
-                grid-template-columns: repeat(3, 1fr);
-                gap: 25px;
-                padding: 20px;
-            }
+        .machine-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            padding: 20px;
+        }
 
-            .machine-card {
-                background: #111827;
-                padding: 12px;
-                border-radius: 14px;
-                text-align: center;
-                height: 320px;              /* fixed height for TV */
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
-            }
+        .machine-card {
+            background: #111827;
+            padding: 12px;
+            border-radius: 14px;
+            text-align: center;
+            height: 320px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
 
-            table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-top: 10px;
-            }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
 
-            th, td {
-                border: 1px solid #444;
-                padding: 4px;
-                text-align: center;
-                font-size: 13px;
-            }
+        th, td {
+            border: 1px solid #444;
+            padding: 4px;
+            text-align: center;
+            font-size: 13px;
+        }
 
-            h1 {
+        h1 {
+            text-align: center;
+            font-size: 30px;
+            margin: 10px 0;
+        }
+
+        h2 {
+            text-align: center;
+            font-size: 25px;
+        }
+
+        h3 {
+            text-align: center;
+            font-size: 40px;
+        }
+
+        .donut-container {
+            width: 150px;
+            height: 170px;
+            margin: 6px auto;
+        }
+
+        .quality-card {
+            background: #111827;
+            padding: 12px;
+            border-radius: 14px;
+            text-align: center;
+            height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ================= TICKER ================= -->
+    <div class="ticker">
+        <span>
+            Production: {{ total_production }} |
+            Rejection: {{ total_rejection }} |
+            Average OEE: {{ avg_oee }}% |
+            Productivity: {{ plant_productivity }}%
+        </span>
+    </div>
+
+    <!-- ================= SCREEN 1 ================= -->
+    <div class="screen active" id="screen1">
+        <h1>CATI PRODUCTION MONITORING</h1>
+        <h2>MACHINE OEE DASHBOARD</h2>
+        <div id="machinePages"></div>
+    </div>
+
+    <!-- ================= SCREEN 2 ================= -->
+    <div class="screen" id="screen2">
+        <h1>CATI PRODUCTION MONITORING</h1>
+        <h2>OPERATOR PERFORMANCE</h2>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:25px;padding:20px;">
+            <div class="machine-card">
+                <h2>Best Productivity Operator</h2>
+                <div class="donut-container">
+                    <canvas id="bestProdChart"></canvas>
+                </div>
+                <h2>{{ best_operator.name if best_operator }}</h2>
+            </div>
+
+            <div class="machine-card">
+                <h2>Lowest Productivity Operator</h2>
+                <div class="donut-container">
+                    <canvas id="lowProdChart"></canvas>
+                </div>
+                <h2>{{ lowest_operator.name if lowest_operator }}</h2>
+            </div>
+        </div>
+
+        <div style="width:50%;height:275px;margin:0 auto;padding-top:8px;">
+            <canvas id="operatorBarChart"></canvas>
+        </div>
+    </div>
+
+    <!-- ================= SCREEN 3 ================= -->
+    <div class="screen" id="screen3">
+        <h1>CATI PRODUCTION MONITORING</h1>
+        <h2>QUALITY DASHBOARD</h2>
+
+        {% if part_rej and part_rej|length > 0 %}
+            <div style="width:35%;height:240px;margin:0 auto 20px auto;">
+                <canvas id="qualityChart"></canvas>
+            </div>
+        {% else %}
+            <h2 style="color:#00ff9c;">🎉 ZERO REJECTION DAY 🎉</h2>
+        {% endif %}
+
+        <!-- SUMMARY CARDS -->
+        <div class="machine-grid" style="margin-top:20px;">
+            <div class="quality-card">
+                <h2>Total Rejection Qty.</h2>
+                <h1 style="color:#ff2d2d;">{{ total_rejection }}</h1>
+            </div>
+
+            <div class="quality-card">
+                <h2>Best Quality Machine</h2>
+                <h1>{{ best_machine.machine if best_machine }}</h1>
+            </div>
+
+            <div class="quality-card">
+                <h2>Worst Quality Machine</h2>
+                <h1>{{ worst_machine.machine if worst_machine }}</h1>
+            </div>
+        </div>
+
+        <!-- MACHINING REJECTION LOGIC -->
+        {% if operator_rejection and operator_rejection|length > 0 %}
+
+            <div style="width:40%;height:240px;margin:20px auto;">
+                <canvas id="operatorRejectionChart"></canvas>
+            </div>
+
+        {% else %}
+
+            <h2 style="
                 text-align:center;
-                font-size: 30px;
-                margin:10px 0 10px 0;
-            }
+                color:#00ff9c;
+                margin-top:110px;
+                font-size:50px;
+            ">
+                🎉 ZERO MACHINING REJECTION DAY 🎉
+            </h2>
 
-            h2 {
-                text-align: center;
-                font-size: 25px;
-            }
+        {% endif %}
 
-            h3 {
-                text-align: center;
-                font-size: 40px;
-            }
+    </div>
 
-            .donut-container {
-                width: 150px;
-                height: 170px;
-                margin: 6px auto;
-            }
+    <!-- ================= SCREEN 4 ================= -->
+    <div class="screen" id="screen4">
 
-            /* ===== QUALITY SUMMARY CARDS ===== */
-            .quality-card {
-                background: #111827;
-                padding: 12px;
-                border-radius: 14px;
-                text-align: center;
-                height: 120px;              /* smaller than machine-card */
-                display: flex;
-                flex-direction: column;
-                justify-content: center;    /* vertical center content */
-            }
-        </style>
-    </head>
+        <h1 style="font-size:30px;margin-bottom:5px;">
+            CATI PRODUCTION COMMAND CENTER
+        </h1>
 
-    <body>
+        <!-- ================= TOP KPI STRIP ================= -->
+        <div style="
+            display:grid;
+            grid-template-columns: repeat(3,1fr);
+            gap:30px;
+            padding:15px 80px;
+        ">
 
-        <!-- ================= TICKER ================= -->
-        <div class="ticker">
-            <span>
-                Production: {{ total_production }} |
-                Rejection: {{ total_rejection }} |
-                Average OEE: {{ avg_oee }}% |
-                Productivity: {{ plant_productivity }}%
-            </span>
-        </div>
-
-        <!-- ================= SCREEN 1 ================= -->
-        <div class="screen active" id="screen1">
-            <h1>CATI PRODUCTION MONITORING</h1>
-            <h2>MACHINE OEE DASHBOARD</h2>
-            <div id="machinePages"></div>
-        </div>
-
-        <!-- ================= SCREEN 2 ================= -->
-        <div class="screen" id="screen2">
-            <h1>CATI PRODUCTION MONITORING</h1>
-            <h2>OPERATOR PERFORMANCE</h2>
-
-            <!-- TOP ROW -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:25px;padding:20px;">
-
-                <!-- BEST -->
-                <div class="machine-card">
-                    <h2>Best Productivity Operator</h2>
-                    <div class="donut-container">
-                        <canvas id="bestProdChart"></canvas>
-                    </div>
-                    <h2>{{ best_operator.name if best_operator }}</h2>
-                </div>
-
-                <!-- LOWEST -->
-                <div class="machine-card">
-                    <h2>Lowest Productivity Operator</h2>
-                    <div class="donut-container">
-                        <canvas id="lowProdChart"></canvas>
-                    </div>
-                    <h2>{{ lowest_operator.name if lowest_operator }}</h2>
-                </div>
-
+            <div class="machine-card" style="height:140px;">
+                <h2>Total Production</h2>
+                <h1 style="color:#00ff9c;font-size:48px;margin-top:5px;">
+                    {{ total_production }}
+                </h1>
             </div>
 
-            <!-- BOTTOM FULL WIDTH PRODUCTIVITY CHART -->
-            <div style="width:50%;height:275px;margin:0 auto;padding-top: 8px;">
-                <canvas id="operatorBarChart"></canvas>
+            <div class="machine-card" style="height:140px;">
+                <h2>Total Rejection</h2>
+                <h1 style="color:#ff2d2d;font-size:48px;margin-top:5px;">
+                    {{ total_rejection }}
+                </h1>
             </div>
 
-            {% if worst_operator %}
-                <h2 style="margin-top:15px;">
-                    Highest Machining Rejection: {{ worst_operator.name }} ({{ worst_operator.value }})
+            <div class="machine-card" style="height:140px;">
+                <h2>Plant Productivity</h2>
+                <h1 id="plantProdText" style="font-size:48px;margin-top:5px;">
+                    {{ plant_productivity }}%
+                </h1>
+            </div>
+
+        </div>
+
+        <!-- ================= MIDDLE VISUAL ROW ================= -->
+        <div style="
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:60px;
+            padding:10px 150px;
+            align-items:center;
+        ">
+
+            <div style="text-align:center;">
+                <h2>Production vs Rejection</h2>
+                <div style="width:230px;height:230px;margin:auto;">
+                    <canvas id="prodVsRejChart"></canvas>
+                </div>
+            </div>
+
+            <div style="text-align:center;">
+                <h2>OEE Performance Status</h2>
+                <div style="width:230px;height:230px;margin:auto;">
+                    <canvas id="mgmtOeeChartLarge"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ================= MACHINE RANK ROW ================= -->
+        <div style="
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:60px;
+            padding:10px 250px;
+            margin-top:20px;
+        ">
+
+            <!-- BEST MACHINE -->
+            <div class="machine-card" style="
+                height:190px;
+                padding-top:18px;
+                justify-content:center;
+            ">
+                <h2 style="color:#00ff9c;">Best Machine</h2>
+
+                <h1 style="font-size:40px;margin:6px 0;">
+                    {{ best_machine.machine if best_machine }}
+                </h1>
+
+                <h2 class="bestMachineOee" style="font-size:30px;">
+                    {{ best_machine.oee if best_machine }}%
                 </h2>
-            {% else %}
-                <h3 style="color:#00ff9c;margin-top:15px;">
-                    🎉 ZERO MACHINING REJECTION DAY 🎉
-                </h3>
-            {% endif %}
-        </div>
-
-        <!-- ================= SCREEN 3 ================= -->
-        <div class="screen" id="screen3">
-            <h1>CATI PRODUCTION MONITORING</h1>
-            <h2>QUALITY DASHBOARD</h2>
-
-            {% if part_rej and part_rej|length > 0 %}
-                <div style="
-                    width:35%;
-                    height:240px;
-                    margin:0 auto 20px auto;
-                ">
-                    <canvas id="qualityChart"></canvas>
-                </div>
-            {% else %}
-                <h2 style="color:#00ff9c;">🎉 ZERO REJECTION DAY 🎉</h2>
-            {% endif %}
-
-            <div class="machine-grid" style="margin-top:20px;">
-                <div class="quality-card">
-                    <h2>Total Rejection Qty.</h2>
-                    <h1 style="color:#ff2d2d;">{{ total_rejection }}</h1>
-                </div>
-
-                <div class="quality-card">
-                    <h2>Best Quality Machine</h2>
-                    <h1>{{ best_machine.machine if best_machine }}</h1>
-                </div>
-
-                <div class="quality-card">
-                    <h2>Worst Quality Machine</h2>
-                    <h1>{{ worst_machine.machine if worst_machine }}</h1>
-                </div>
             </div>
 
-            {% if operator_rejection and operator_rejection|length > 0 %}
+            <!-- WORST MACHINE -->
+            <div class="machine-card" style="
+                height:190px;
+                padding-top:18px;
+                justify-content:center;
+            ">
+                <h2 style="color:#ff2d2d;">Worst Machine</h2>
 
-                <div style="width:40%;height:240px;margin:20px auto;">
-                    <canvas id="operatorRejectionChart"></canvas>
-                </div>
+                <h1 style="font-size:40px;margin:6px 0;">
+                    {{ worst_machine.machine if worst_machine }}
+                </h1>
 
-            {% else %}
-
-                <h2 style="
-                    text-align:center;
-                    color:#00ff9c;
-                    margin-top:110px;
-                    font-size:50px;
-                ">
-                    🎉 ZERO MACHINING REJECTION DAY 🎉
+                <h2 class="worstMachineOee" style="font-size:30px;">
+                    {{ worst_machine.oee if worst_machine }}%
                 </h2>
-
-            {% endif %}
+            </div>
 
         </div>
 
-        <!-- ================= SCREEN 4 ================= -->
-        <div class="screen" id="screen4">
-
-            <h1 style="font-size:30px;margin-bottom:5px;">
-                CATI PRODUCTION COMMAND CENTER
+        <!-- ================= STATUS BANNER ================= -->
+        {% if avg_oee > 85 %}
+            <h1 style="text-align:center;font-size:36px;color:#00ff9c;margin-top:10px;">
+                🎉 EXCELLENT PERFORMANCE DAY 🎉
             </h1>
 
-            <!-- ================= TOP KPI STRIP ================= -->
-            <div style="
-                display:grid;
-                grid-template-columns: repeat(3,1fr);
-                gap:30px;
-                padding:15px 80px;
-            ">
+        {% elif avg_oee < 65 %}
+            <h1 style="text-align:center;font-size:36px;color:#ff2d2d;margin-top:10px;">
+                ⚠ LOW OEE PERFORMANCE ALERT ⚠
+            </h1>
 
-                <div class="machine-card" style="height:140px;">
-                    <h2>Total Production</h2>
-                    <h1 style="color:#00ff9c;;font-size:48px;margin-top:5px;">
-                        {{ total_production }}
-                    </h1>
+        {% elif total_rejection > (total_production * 0.1) %}
+            <h1 style="text-align:center;font-size:36px;color:#ff2d2d;margin-top:10px;">
+                🚨 HIGH REJECTION ALERT 🚨
+            </h1>
+        {% endif %}
+
+    </div>
+
+    <!-- ================= DATA + SCRIPT SECTION ================= -->
+    <script id="tvData" type="application/json">
+    {
+        "machines": {{ machines | tojson }},
+        "partRej": {{ part_rej | tojson }},
+        "operators": {{ operators | tojson }},
+        "operatorRejection": {{ operator_rejection | tojson }},
+        "bestValue": {{ best_operator.value if best_operator else 0 }},
+        "lowValue": {{ lowest_operator.value if lowest_operator else 0 }},
+        "plantProductivity": {{ plant_productivity }},
+        "avgOee": {{ avg_oee }},
+        "totalProduction": {{ total_production }},
+        "totalRejection": {{ total_rejection }}
+    }
+    </script>
+
+    <script>
+
+    /* =========================================================
+    GLOBAL COLOR ENGINE
+    ========================================================= */
+    function getOEEColor(val){
+        val = Number(val) || 0;
+        if(val > 85) return "#00ff9c";
+        if(val >= 70) return "#ffe600";
+        return "#ff2d2d";
+    }
+
+    function getProdColor(val){
+        val = Number(val) || 0;
+        if(val > 95) return "#00ff9c";
+        if(val >= 85) return "#ffe600";
+        return "#ff2d2d";
+    }
+
+    /* =========================================================
+    LOAD DATA
+    ========================================================= */
+    const tvData = JSON.parse(document.getElementById("tvData").textContent);
+
+    const machines = tvData.machines;
+    const partRej = tvData.partRej;
+    const operators = tvData.operators;
+    const operatorRejection = tvData.operatorRejection;
+    const bestValue = tvData.bestValue;
+    const lowValue = tvData.lowValue;
+    const plantProductivity = tvData.plantProductivity;
+
+    const avgOee = tvData.avgOee;
+    const totalProduction = tvData.totalProduction;
+    const totalRejection = tvData.totalRejection;
+
+    /* =========================================================
+    MACHINE SCREEN (SCREEN 1)
+    ========================================================= */
+    const machinesPerPage = 6;
+    let machinePages = [];
+
+    for (let i = 0; i < machines.length; i += machinesPerPage){
+        machinePages.push(machines.slice(i, i + machinesPerPage));
+    }
+
+    let currentMachinePage = 0;
+    const machineContainer = document.getElementById("machinePages");
+
+    function renderMachinePage(pageIndex){
+
+        if(machinePages.length === 0) return;
+
+        const page = machinePages[pageIndex];
+        let html = `<div class="machine-grid">`;
+
+        page.forEach((m, idx)=>{
+            const canvasId = "oee_" + pageIndex + "_" + idx;
+
+            html += `
+            <div class="machine-card">
+                <h2>${m.machine}</h2>
+
+                <div class="donut-container">
+                    <canvas id="${canvasId}"></canvas>
                 </div>
 
-                <div class="machine-card" style="height:140px;">
-                    <h2>Total Rejection</h2>
-                    <h1 style="color:#ff2d2d;font-size:48px;margin-top:5px;">
-                        {{ total_rejection }}
-                    </h1>
-                </div>
+                <table>
+                    <tr>
+                        <th>Availability %</th>
+                        <th>Productivity %</th>
+                        <th>Quality %</th>
+                        <th>OEE %</th>
+                    </tr>
+                    <tr>
+                        <td>${m.availability} %</td>
+                        <td>${m.performance} %</td>
+                        <td>${m.quality} %</td>
+                        <td><b>${m.oee} %</b></td>
+                    </tr>
+                </table>
+            </div>`;
+        });
 
-                <div class="machine-card" style="height:140px;">
-                    <h2>Plant Productivity</h2>
-                    <h1 id="plantProdText"
-                        style="font-size:48px;margin-top:5px;">
-                        {{ plant_productivity }}%
-                    </h1>
-                </div>
+        html += `</div>`;
+        machineContainer.innerHTML = html;
 
-            </div>
+        page.forEach((m, idx)=>{
+            const canvasId = "oee_" + pageIndex + "_" + idx;
 
-            <!-- ================= MIDDLE VISUAL ROW ================= -->
-            <div style="
-                display:grid;
-                grid-template-columns:1fr 1fr;
-                gap:60px;
-                padding:10px 150px;
-                align-items:center;
-            ">
+            new Chart(document.getElementById(canvasId), {
+                type: 'doughnut',
+                data:{
+                    datasets:[{
+                        data:[m.oee, 100 - m.oee],
+                        backgroundColor:[getOEEColor(m.oee),'#1f2937']
+                    }]
+                },
+                options:{
+                    plugins:{legend:{display:false}},
+                    cutout:'75%',
+                    animation:{animateRotate:true,duration:1200}
+                },
+                plugins:[{
+                    id:'text',
+                    beforeDraw(chart){
+                        const ctx = chart.ctx;
+                        ctx.save();
+                        ctx.font="bold 22px Calibri";
+                        ctx.fillStyle=getOEEColor(m.oee);
+                        ctx.textAlign="center";
+                        ctx.textBaseline="middle";
+                        ctx.fillText(m.oee+"%", chart.width/2, chart.height/2);
+                        ctx.restore();
+                    }
+                }]
+            });
+        });
+    }
 
-                <div style="text-align:center;">
-                    <h2>Production vs Rejection</h2>
-                    <div style="width:230px;height:230px;margin:auto;">
-                        <canvas id="prodVsRejChart"></canvas>
-                    </div>
-                </div>
+    renderMachinePage(0);
 
-                <div style="text-align:center;">
-                    <h2>OEE Performance Status</h2>
-                    <div style="width:230px;height:230px;margin:auto;">
-                        <canvas id="mgmtOeeChartLarge"></canvas>
-                    </div>
-                </div>
+    setInterval(()=>{
+        if(machinePages.length <= 1) return;
+        currentMachinePage = (currentMachinePage + 1) % machinePages.length;
+        renderMachinePage(currentMachinePage);
+    }, 12000);
 
-            </div>
+    /* =========================================================
+    SCREEN INITIALIZATION FLAGS
+    ========================================================= */
+    let screen2Init = false;
+    let screen3Init = false;
+    let screen4Init = false;
 
-            <!-- ================= MACHINE RANK ROW ================= -->
-            <div style="
-                display:grid;
-                grid-template-columns:1fr 1fr;
-                gap:60px;
-                padding:10px 250px;
-                margin-top:10px;
-            ">
+    /* =========================================================
+    SCREEN 2 – OPERATOR
+    ========================================================= */
+    function initScreen2(){
 
-                <!-- BEST MACHINE -->
-                <div class="machine-card" style="
-                    height:190px;
-                    padding-top:18px;
-                    justify-content:center;
-                ">
-                    <h2 style="color:#00ff9c;">Best Machine</h2>
+        if(screen2Init) return;
+        screen2Init = true;
 
-                    <h1 style="
-                        font-size:40px;
-                        margin:6px 0;
-                    ">
-                        {{ best_machine.machine if best_machine }}
-                    </h1>
+        // Best donut
+        new Chart(document.getElementById("bestProdChart"),{
+            type:'doughnut',
+            data:{datasets:[{
+                data:[bestValue, 100-bestValue],
+                backgroundColor:[getProdColor(bestValue),'#1f2937']
+            }]},
+            options:{
+                cutout:'75%',
+                plugins:{legend:{display:false}},
+                animation:{animateRotate:true,duration:1200}
+            },
+            plugins:[{
+                id:'text',
+                beforeDraw(chart){
+                    const ctx=chart.ctx;
+                    ctx.save();
+                    ctx.font="bold 22px Calibri";
+                    ctx.fillStyle=getProdColor(bestValue);
+                    ctx.textAlign="center";
+                    ctx.textBaseline="middle";
+                    ctx.fillText(bestValue+"%",chart.width/2,chart.height/2);
+                    ctx.restore();
+                }
+            }]
+        });
 
-                    <h2 class="bestMachineOee"
-                        style="font-size:30px;">
-                        {{ best_machine.oee if best_machine }}%
-                    </h2>
-                </div>
+        // Lowest donut
+        new Chart(document.getElementById("lowProdChart"),{
+            type:'doughnut',
+            data:{datasets:[{
+                data:[lowValue,100-lowValue],
+                backgroundColor:[getProdColor(lowValue),'#1f2937']
+            }]},
+            options:{
+                cutout:'75%',
+                plugins:{legend:{display:false}},
+                animation:{animateRotate:true,duration:1200}
+            },
+            plugins:[{
+                id:'text',
+                beforeDraw(chart){
+                    const ctx=chart.ctx;
+                    ctx.save();
+                    ctx.font="bold 22px Calibri";
+                    ctx.fillStyle=getProdColor(lowValue);
+                    ctx.textAlign="center";
+                    ctx.textBaseline="middle";
+                    ctx.fillText(lowValue+"%",chart.width/2,chart.height/2);
+                    ctx.restore();
+                }
+            }]
+        });
 
-                <!-- WORST MACHINE -->
-                <div class="machine-card" style="
-                    height:190px;
-                    padding-top:18px;
-                    justify-content:center;
-                ">
-                    <h2 style="color:#ff2d2d;">Worst Machine</h2>
-
-                    <h1 style="
-                        font-size:40px;
-                        margin:6px 0;
-                    ">
-                        {{ worst_machine.machine if worst_machine }}
-                    </h1>
-
-                    <h2 class="worstMachineOee"
-                        style="font-size:30px;">
-                        {{ worst_machine.oee if worst_machine }}%
-                    </h2>
-                </div>
-
-            </div>
-
-            <!-- ================= STATUS BANNER ================= -->
-            {% if avg_oee > 85 %}
-                <h1 style="text-align:center;font-size:36px;color:#00ff9c;margin-top:10px;">
-                    🎉 EXCELLENT PERFORMANCE DAY 🎉
-                </h1>
-
-            {% elif avg_oee < 60 %}
-                <h1 style="text-align:center;font-size:36px;color:#ff2d2d;margin-top:10px;">
-                    ⚠ LOW OEE PERFORMANCE ALERT ⚠
-                </h1>
-
-            {% elif total_rejection > (total_production * 0.1) %}
-                <h1 style="text-align:center;font-size:36px;color:#ff2d2d;margin-top:10px;">
-                    🚨 HIGH REJECTION ALERT 🚨
-                </h1>
-            {% endif %}
-
-        </div>
-
-        <script id="tvData" type="application/json">
-        {
-            "machines": {{ machines | tojson }},
-            "partRej": {{ part_rej | tojson }},
-            "operators": {{ operators | tojson }},
-            "operatorRejection": {{ operator_rejection | tojson }},
-            "bestValue": {{ best_operator.value if best_operator else 0 }},
-            "lowValue": {{ lowest_operator.value if lowest_operator else 0 }},
-            "plantProductivity": {{ plant_productivity }},
-            "avgOee": {{ avg_oee }},
-            "totalProduction": {{ total_production }},
-            "totalRejection": {{ total_rejection }}
+        // Operator bar
+        if(operators && operators.length > 0){
+            new Chart(document.getElementById("operatorBarChart"),{
+                type:'bar',
+                data:{
+                    labels:operators.map(o=>o.name),
+                    datasets:[{
+                        data:operators.map(o=>o.value),
+                        backgroundColor:operators.map(o=>getProdColor(o.value))
+                    }]
+                },
+                options:{
+                    responsive:true,
+                    maintainAspectRatio:false,
+                    animation:{duration:1500,easing:'easeOutCubic'},
+                    animations:{y:{type:'number',duration:1500,from:0}},
+                    plugins:{legend:{display:false}},
+                    scales:{
+                        x:{ticks:{color:"white"},grid:{color:"#333"}},
+                        y:{beginAtZero:true,ticks:{color:"white"},grid:{color:"#333"}}
+                    }
+                }
+            });
         }
-        </script>
+    }
 
-        <script>
+    /* =========================================================
+    SCREEN 3 – QUALITY
+    ========================================================= */
+    function initScreen3(){
 
-            /* =========================================================
-            GLOBAL COLOR ENGINE (TV PREMIUM)
-            ========================================================= */
+        if(screen3Init) return;
+        screen3Init = true;
 
-            function getOEEColor(val){
-                val = Number(val) || 0;
-                if(val > 85) return "#00ff9c";       // neon green
-                if(val >= 70) return "#ffe600";      // neon yellow
-                return "#ff2d2d";                    // neon red
-            }
-
-            function getProdColor(val){
-                val = Number(val) || 0;
-                if(val > 95) return "#00ff9c";
-                if(val >= 85) return "#ffe600";
-                return "#ff2d2d";
-            }
-
-            /* ================= SAFE DATA LOAD ================= */
-            const tvData = JSON.parse(
-                document.getElementById("tvData").textContent
-            );
-
-            const machines = tvData.machines;
-            const partRej = tvData.partRej;
-            const operatorRejection = tvData.operatorRejection;
-            const bestValue = tvData.bestValue;
-            const lowValue = tvData.lowValue;
-            const plantProductivity = tvData.plantProductivity;
-
-            const avgOee = tvData.avgOee;
-            const totalProduction = tvData.totalProduction;
-            const totalRejection = tvData.totalRejection;
-
-            const plantText = document.getElementById("plantProdText");
-            if(plantText){
-                plantText.style.color = getProdColor(plantProductivity);
-            }
-
-            const bestOeeEl = document.querySelector(".bestMachineOee");
-            if(bestOeeEl){
-                bestOeeEl.style.color = getOEEColor(bestOeeEl.textContent);
-            }
-
-            const worstOeeEl = document.querySelector(".worstMachineOee");
-            if(worstOeeEl){
-                worstOeeEl.style.color = getOEEColor(worstOeeEl.textContent);
-            }
-            
-            /* ================= MACHINE PAGINATION ================= */
-            const machinesPerPage = 6;
-            let machinePages = [];
-
-            for (let i = 0; i < machines.length; i += machinesPerPage) {
-                machinePages.push(machines.slice(i, i + machinesPerPage));
-            }
-
-            let currentMachinePage = 0;
-            const machineContainer = document.getElementById("machinePages");
-
-            function renderMachinePage(pageIndex) {
-
-                if (machinePages.length === 0) return;
-
-                const page = machinePages[pageIndex];
-                let html = `<div class="machine-grid">`;
-
-                page.forEach((m, idx) => {
-
-                    const canvasId = "oee_" + pageIndex + "_" + idx;
-
-                    html += `
-                        <div class="machine-card">
-                            <h2>${m.machine}</h2>
-                            <div class="donut-container">
-                                <canvas id="${canvasId}"></canvas>
-                            </div>
-                            <table>
-                                <tr>
-                                    <th>Availability %</th>
-                                    <th>Productivity %</th>
-                                    <th>Quality Rate %</th>
-                                    <th>OEE %</th>
-                                </tr>
-                                <tr>
-                                    <td>${m.availability ?? 0} %</td>
-                                    <td>${m.performance ?? 0} %</td>
-                                    <td>${m.quality ?? 0} %</td>
-                                    <td><b>${m.oee ?? 0} %</b></td>
-                                </tr>
-                            </table>
-                        </div>
-                    `;
-                });
-
-                html += `</div>`;
-                machineContainer.innerHTML = html;
-
-                page.forEach((m, idx) => {
-
-                    const canvasId = "oee_" + pageIndex + "_" + idx;
-
-                    new Chart(document.getElementById(canvasId), {
-                        type: 'doughnut',
-                        data: {
-                            datasets: [{
-                                data: [m.oee, 100 - m.oee],
-                                backgroundColor: [getOEEColor(m.oee),'#1f2937']
-                            }]
-                        },
-                        options: {
-                            plugins: { legend: { display: false } },
-                            cutout: '75%',
-                            animation:{
-                                animateRotate:true,
-                                animateScale:false,
-                                duration:1200,
-                                easing:'easeOutCubic'
-                            }
-                        },
-                        plugins: [{
-                            id: 'text',
-                            beforeDraw(chart) {
-                                const ctx = chart.ctx;
-                                ctx.save();
-                                ctx.font = "bold 22px Calibri";
-                                ctx.fillStyle = getOEEColor(m.oee);
-                                ctx.textAlign = "center";
-                                ctx.textBaseline = "middle";
-                                ctx.fillText(m.oee + "%", chart.width / 2, chart.height / 2);
-                                ctx.restore();
-                            }
-                        }]
-                    });
-                });
-            }
-
-            renderMachinePage(0);
-
-            setInterval(() => {
-
-                if (machinePages.length <= 1) return;
-
-                currentMachinePage++;
-                if (currentMachinePage >= machinePages.length) {
-                    currentMachinePage = 0;
+        if(partRej && partRej.length > 0){
+            new Chart(document.getElementById("qualityChart"),{
+                type:'bar',
+                data:{
+                    labels:partRej.map(p=>p.Part),
+                    datasets:[
+                        {label:'Casting',data:partRej.map(p=>p.Cast_Rej),backgroundColor:'#ffe600'},
+                        {label:'Machining',data:partRej.map(p=>p.Mach_Rej),backgroundColor:'#ff2d2d'}
+                    ]
+                },
+                options:{
+                    responsive:true,
+                    maintainAspectRatio:false,
+                    animation:{duration:1500},
+                    animations:{y:{type:'number',duration:1500,from:0}},
+                    plugins:{legend:{labels:{color:"white"}}},
+                    scales:{
+                        x:{ticks:{color:"white"},grid:{color:"#333"}},
+                        y:{beginAtZero:true,ticks:{color:"white"},grid:{color:"#333"}}
+                    }
                 }
+            });
+        }
 
-                renderMachinePage(currentMachinePage);
-
-            }, 12000);
-
-            /* ================= QUALITY CHART ================= */
-            if (partRej && partRej.length > 0) {
-
-                const qCanvas = document.getElementById("qualityChart");
-
-                if (qCanvas) {
-                    new Chart(qCanvas, {
-                        type: 'bar',
-                        data: {
-                            labels: partRej.map(p => p.Part),
-                            datasets: [
-                                {
-                                label:'Casting Rejection',
-                                data: partRej.map(p=>p.Cast_Rej),
-                                backgroundColor:'#ffe600'
-                                },
-                                {
-                                label:'Machining Rejection',
-                                data: partRej.map(p=>p.Mach_Rej),
-                                backgroundColor:'#ff2d2d'
-                                }
-                            ]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            animation: {
-                                duration: 1400,
-                                easing: 'easeOutQuart'
-                            },
-                            animations: {
-                                y: {
-                                    from: 0
-                                }
-                            },
-                            plugins: {
-                                legend: {
-                                    display: true,
-                                    labels:{color:"white",font:{size:14}}
-                                }
-                            },
-                            scales: {
-                                x:{
-                                    ticks:{color:"white",font:{size:13}},
-                                    grid:{color:"#333"}
-                                },
-                                y:{
-                                    beginAtZero:true,
-                                    ticks:{color:"white",font:{size:13}},
-                                    grid:{color:"#333"}
-                                }
-                            }
-                        }
-                    });
-                }
-            }
-
-            /* ================= OPERATOR MACHINING REJECTION CHART ================= */
-
-            if (operatorRejection && operatorRejection.length > 0) {
-
-                const labels = operatorRejection.map(o => o.Operator);
-                const values = operatorRejection.map(o => o.Mach_Rej);
-
-                const canvas = document.getElementById("operatorRejectionChart");
-
-                if (canvas) {
-                    new Chart(canvas, {
-                        type: 'bar',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: 'Machining Rejection Qty',
-                                data: values,
-                                backgroundColor: '#ff2d2d'
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            animation: {
-                                duration: 1400,
-                                easing: 'easeOutQuart'
-                            },
-                            animations: {
-                                y: {
-                                    from: 0
-                                }
-                            },
-                            plugins: {
-                                legend: { display:false }
-                            },
-                            scales: {
-                                x: {
-                                    ticks: { color:"white", font:{size:14} },
-                                    grid: { color:"#333" }
-                                },
-                                y: {
-                                    beginAtZero:true,
-                                    ticks: { color:"white", font:{size:14} },
-                                    grid: { color:"#333" }
-                                }
-                            }
-                        }
-                    });
-                }
-            }
-            
-            /* ================= OPERATOR DONUTS ================= */
-            function createDonut(id, value) {
-
-                const canvas = document.getElementById(id);
-                if (!canvas) return;
-
-                const v = Math.min(value, 100);
-
-                new Chart(canvas, {
-                    type: 'doughnut',
-                    data: {
-                        datasets: [{
-                            data: [v, 100 - v],
-                            backgroundColor: [getProdColor(value),'#1f2937']
-                        }]
-                    },
-                    options: {
-                        rotation: -90,
-                        circumference: 360,
-                        plugins: { legend: { display: false } },
-                        cutout: '75%',
-                        animation: {
-                            duration: 1400,
-                            easing: 'easeOutQuart'
-                        }
-                    },
-                    plugins: [{
-                        id: 'text',
-                        beforeDraw(chart) {
-                            const ctx = chart.ctx;
-                            ctx.save();
-                            ctx.font = "bold 22px Calibri";
-                            ctx.fillStyle = getProdColor(value);
-                            ctx.textAlign = "center";
-                            ctx.textBaseline = "middle";
-                            ctx.fillText(value + "%", chart.width / 2, chart.height / 2);
-                            ctx.restore();
-                        }
+        if(operatorRejection && operatorRejection.length > 0){
+            new Chart(document.getElementById("operatorRejectionChart"),{
+                type:'bar',
+                data:{
+                    labels:operatorRejection.map(o=>o.Operator),
+                    datasets:[{
+                        data:operatorRejection.map(o=>o.Mach_Rej),
+                        backgroundColor:'#ff2d2d'
                     }]
-                });
-            }
-
-            /* ================= OPERATOR BAR CHART ================= */
-
-            const operators = tvData.operators;
-
-            if (operators && operators.length > 0) {
-
-                const labels = operators.map(o => o.name);
-                const values = operators.map(o => o.value);
-
-                const barCanvas = document.getElementById("operatorBarChart");
-
-                if (barCanvas) {
-
-                    new Chart(barCanvas, {
-                        type: 'bar',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: 'Productivity %',
-                                data: values,
-                                backgroundColor: values.map(v => getProdColor(v))
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            animation: {
-                                duration: 1400,
-                                easing: 'easeOutQuart'
-                            },
-                            animations: {
-                                y: {
-                                    from: 0
-                                }
-                            },
-                            plugins: {
-                                legend: {
-                                    display: false
-                                }
-                            },
-                            scales: {
-                                x: {
-                                    ticks: { color: "white", font:{size:14} },
-                                    grid: { color: "#333" }
-                                },
-                                y: {
-                                    beginAtZero: true,
-                                    ticks: { color: "white", font:{size:14} },
-                                    grid: { color: "#333" }
-                                }
-                            }
-                        }
-                    });
-
+                },
+                options:{
+                    responsive:true,
+                    maintainAspectRatio:false,
+                    animation:{duration:1500},
+                    animations:{y:{type:'number',duration:1500,from:0}},
+                    plugins:{legend:{display:false}},
+                    scales:{
+                        x:{ticks:{color:"white"},grid:{color:"#333"}},
+                        y:{beginAtZero:true,ticks:{color:"white"},grid:{color:"#333"}}
+                    }
                 }
+            });
+        }
+    }
+
+    /* =========================================================
+    SCREEN 4 – COMMAND CENTER
+    ========================================================= */
+    function initScreen4(){
+
+        if(screen4Init) return;
+        screen4Init = true;
+
+        new Chart(document.getElementById("prodVsRejChart"),{
+            type:'doughnut',
+            data:{
+                labels:["Good","Rejection"],
+                datasets:[{
+                    data:[totalProduction,totalRejection],
+                    backgroundColor:["#00ff9c","#ff2d2d"]
+                }]
+            },
+            options:{
+                cutout:'70%',
+                plugins:{legend:{display:false}},
+                animation:{animateRotate:true,duration:1200}
             }
+        });
 
-            createDonut("bestProdChart", bestValue);
-            createDonut("lowProdChart", lowValue);
-            createDonut("plantProdChart", plantProductivity);
-
-            /* ================= MANAGEMENT DONUTS ================= */
-
-            function createMgmtDonut(id, value){
-
-                const canvas = document.getElementById(id);
-                if(!canvas) return;
-
-                const safeValue = Number(value) || 0;
-                const v = Math.min(safeValue,100);
-
-                new Chart(canvas,{
-                    type:'doughnut',
-                    data:{
-                        datasets:[{
-                            data:[v,100-v],
-                            backgroundColor:[getOEEColor(safeValue),'#1f2937']
-                        }]
-                    },
-                    options:{
-                        plugins:{legend:{display:false}},
-                        cutout:'75%',
-                        animation:{
-                            animateRotate:true,
-                            animateScale:false,
-                            duration:1200,
-                            easing:'easeOutCubic'
-                        }
-                    },
-                    plugins:[{
-                        id:'text',
-                        beforeDraw(chart){
-                            const ctx=chart.ctx;
-                            ctx.save();
-                            ctx.font="bold 26px Calibri";
-                            ctx.fillStyle=getOEEColor(safeValue);
-                            ctx.textAlign="center";
-                            ctx.textBaseline="middle";
-                            ctx.fillText(safeValue+"%",chart.width/2,chart.height/2);
-                            ctx.restore();
-                        }
-                    }]
-                });
-            }
-
-            if(typeof avgOee !== "undefined"){
-                createMgmtDonut("mgmtOeeChart", avgOee);
-            }
-
-            if(typeof totalProduction !== "undefined" && typeof totalRejection !== "undefined"){
-
-                const total = Number(totalProduction) + Number(totalRejection);
-
-                const pvCanvas = document.getElementById("prodVsRejChart");
-
-                if(pvCanvas && total > 0){
-                    new Chart(pvCanvas,{
-                        type:'doughnut',
-                        data:{
-                            labels:["Good","Rejection"],
-                            datasets:[{
-                                data:[totalProduction, totalRejection],
-                                backgroundColor:["#00ff9c","#ff2d2d"]
-                            }]
-                        },
-                        options:{
-                            plugins:{
-                                legend:{display:false}
-                            },
-                            cutout:'70%',
-                            animation:{
-                                animateRotate:true,
-                                animateScale:false,
-                                duration:1200,
-                                easing:'easeOutCubic'
-                            }
-                        },
-                        plugins:[{
-                            id:'text',
-                            beforeDraw(chart){
-                                const ctx=chart.ctx;
-                                ctx.save();
-                                ctx.font="bold 20px Calibri";
-                                ctx.fillStyle="#ffffff";
-                                ctx.textAlign="center";
-                                ctx.textBaseline="middle";
-                                ctx.fillText("Good vs Reject",
-                                    chart.width/2,
-                                    chart.height/2);
-                                ctx.restore();
-                            }
-                        }]
-                    });
+        new Chart(document.getElementById("mgmtOeeChartLarge"),{
+            type:'doughnut',
+            data:{datasets:[{
+                data:[avgOee,100-avgOee],
+                backgroundColor:[getOEEColor(avgOee),'#1f2937']
+            }]},
+            options:{
+                cutout:'75%',
+                plugins:{legend:{display:false}},
+                animation:{animateRotate:true,duration:1200}
+            },
+            plugins:[{
+                id:'text',
+                beforeDraw(chart){
+                    const ctx=chart.ctx;
+                    ctx.save();
+                    ctx.font="bold 26px Calibri";
+                    ctx.fillStyle=getOEEColor(avgOee);
+                    ctx.textAlign="center";
+                    ctx.textBaseline="middle";
+                    ctx.fillText(avgOee+"%",chart.width/2,chart.height/2);
+                    ctx.restore();
                 }
-            }
+            }]
+        });
+    }
 
-            createMgmtDonut("mgmtOeeChartLarge", avgOee);
+    /* =========================================================
+    SCREEN ROTATION
+    ========================================================= */
+    let currentScreen = 0;
+    const screens = document.querySelectorAll(".screen");
 
-            /* ================= SCREEN ROTATION ================= */
-            let currentScreen = 0;
-            const screens = document.querySelectorAll(".screen");
+    setInterval(()=>{
 
-            setInterval(() => {
-                screens[currentScreen].classList.remove("active");
-                currentScreen = (currentScreen + 1) % screens.length;
-                screens[currentScreen].classList.add("active");
-            }, 12000);
+        screens[currentScreen].classList.remove("active");
+        currentScreen = (currentScreen + 1) % screens.length;
+        screens[currentScreen].classList.add("active");
 
-        </script>
+        if(currentScreen === 1) initScreen2();
+        if(currentScreen === 2) initScreen3();
+        if(currentScreen === 3) initScreen4();
 
-    </body>
+    }, 12000);
+
+    </script>
+
+</body>
 </html>
