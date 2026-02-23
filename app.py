@@ -8,11 +8,137 @@ import os
 import io
 from flask import send_file
 
+import os
+import zipfile
+import pandas as pd
+import io
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseDownload
+
+# =========================================================
+# AUTO RESTORE FROM GOOGLE DRIVE (SELF-HEALING SYSTEM)
+# =========================================================
+def auto_restore_from_drive():
+
+    print("🔵 Checking if data restore needed...")
+
+    DATA_FOLDER = "data"
+    KEY_FILE = "/etc/secrets/gdrive_key.json"
+    FOLDER_NAME = "CATI_APP_BACKUP"
+
+    restore_needed = False
+
+    # ---------- CHECK DATA HEALTH ----------
+    if not os.path.exists(DATA_FOLDER):
+        restore_needed = True
+    else:
+        prod_file = os.path.join(DATA_FOLDER, "production_main.csv")
+
+        if not os.path.exists(prod_file):
+            restore_needed = True
+        else:
+            try:
+                df = pd.read_csv(prod_file)
+                if df.empty:
+                    restore_needed = True
+            except:
+                restore_needed = True
+
+    if not restore_needed:
+        print("🟢 Data OK — no restore needed")
+        return
+
+    print("⚠ Data missing/empty. Starting AUTO RESTORE...")
+
+    try:
+        # ---------- GOOGLE AUTH ----------
+        SCOPES = ['https://www.googleapis.com/auth/drive']
+
+        creds = service_account.Credentials.from_service_account_file(
+            KEY_FILE, scopes=SCOPES
+        )
+
+        service = build('drive', 'v3', credentials=creds)
+
+        # ---------- FIND BACKUP FOLDER ----------
+        results = service.files().list(
+            q=f"name='{FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder'",
+            fields="files(id, name)",
+            supportsAllDrives=True,
+            includeItemsFromAllDrives=True
+        ).execute()
+
+        folders = results.get('files', [])
+        if not folders:
+            print("❌ Backup folder not found in Drive")
+            return
+
+        folder_id = folders[0]['id']
+        print("🟢 Backup folder found")
+
+        # ---------- GET LATEST BACKUP ----------
+        results = service.files().list(
+            q=f"'{folder_id}' in parents and name contains 'backup_'",
+            fields="files(id, name, createdTime)",
+            orderBy="createdTime desc",
+            supportsAllDrives=True,
+            includeItemsFromAllDrives=True
+        ).execute()
+
+        files = results.get('files', [])
+        if not files:
+            print("❌ No backup ZIP found")
+            return
+
+        latest = files[0]
+        print("🟢 Restoring from:", latest["name"])
+
+        # ---------- DOWNLOAD ZIP ----------
+        request = service.files().get_media(
+            fileId=latest['id'],
+            supportsAllDrives=True
+        )
+
+        fh = io.BytesIO()
+        downloader = MediaIoBaseDownload(fh, request)
+
+        done = False
+        while not done:
+            status, done = downloader.next_chunk()
+
+        fh.seek(0)
+
+        temp_zip = "restore_temp.zip"
+        with open(temp_zip, "wb") as f:
+            f.write(fh.read())
+
+        # ---------- EXTRACT ----------
+        os.makedirs(DATA_FOLDER, exist_ok=True)
+
+        with zipfile.ZipFile(temp_zip, 'r') as zip_ref:
+            zip_ref.extractall(DATA_FOLDER)
+
+        os.remove(temp_zip)
+
+        print("🟢 AUTO RESTORE COMPLETE — DATA RECOVERED")
+
+    except Exception as e:
+        print("🔴 AUTO RESTORE FAILED:", str(e))
+
 # =========================================
 # APP CONFIG
 # =========================================
 
 app = Flask(__name__)
+
+# =========================================================
+# AUTO RESTORE ON SERVER START
+# =========================================================
+try:
+    auto_restore_from_drive()
+except Exception as e:
+    print("Startup restore error:", e)
 
 DATA_FOLDER = "data"
 UPLOAD_FOLDER = "uploads"
@@ -4727,100 +4853,8 @@ def shopfloor_tv():
     )
 
 # =========================================
-# AUTORESTORE DATA IF ABSENT
-# =========================================
-
-import os
-import zipfile
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseDownload
-import io
-
-def auto_restore_from_drive():
-    print("🔵 Checking if data restore needed...")
-
-    DATA_FOLDER = "data"
-    KEY_FILE = "/etc/secrets/gdrive_key.json"
-    FOLDER_NAME = "CATI_APP_BACKUP"
-
-    # If data folder missing or empty → restore
-    if not os.path.exists(DATA_FOLDER) or len(os.listdir(DATA_FOLDER)) == 0:
-
-        print("⚠ Data folder empty. Starting auto-restore...")
-
-        try:
-            SCOPES = ['https://www.googleapis.com/auth/drive']
-            creds = service_account.Credentials.from_service_account_file(
-                KEY_FILE, scopes=SCOPES
-            )
-            service = build('drive', 'v3', credentials=creds)
-
-            # Find backup folder
-            results = service.files().list(
-                q=f"name='{FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder'",
-                fields="files(id, name)",
-                supportsAllDrives=True,
-                includeItemsFromAllDrives=True
-            ).execute()
-
-            folder_id = results.get('files', [])[0]['id']
-
-            # Get latest backup file
-            results = service.files().list(
-                q=f"'{folder_id}' in parents and name contains 'backup_'",
-                fields="files(id, name, createdTime)",
-                orderBy="createdTime desc",
-                supportsAllDrives=True,
-                includeItemsFromAllDrives=True
-            ).execute()
-
-            files = results.get('files', [])
-            if not files:
-                print("❌ No backup files found in Drive")
-                return
-
-            latest_file = files[0]
-            print("🟢 Restoring from:", latest_file["name"])
-
-            request = service.files().get_media(fileId=latest_file['id'],
-                                                supportsAllDrives=True)
-
-            fh = io.BytesIO()
-            downloader = MediaIoBaseDownload(fh, request)
-
-            done = False
-            while not done:
-                status, done = downloader.next_chunk()
-
-            fh.seek(0)
-
-            # Save zip temporarily
-            temp_zip = "restore_temp.zip"
-            with open(temp_zip, "wb") as f:
-                f.write(fh.read())
-
-            # Extract into data folder
-            os.makedirs(DATA_FOLDER, exist_ok=True)
-
-            with zipfile.ZipFile(temp_zip, 'r') as zip_ref:
-                zip_ref.extractall(DATA_FOLDER)
-
-            os.remove(temp_zip)
-
-            print("🟢 AUTO RESTORE COMPLETE")
-
-        except Exception as e:
-            print("🔴 AUTO RESTORE FAILED:", str(e))
-
-    else:
-        print("🟢 Data folder OK — no restore needed")
-
-# =========================================
 # MAIN
 # =========================================
-
-auto_restore_from_drive()
 
 if __name__ == "__main__":
     app.run(
