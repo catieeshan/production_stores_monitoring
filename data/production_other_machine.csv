@@ -39,4 +39,3 @@ Date,Operator,Shift,OT,Machine,Part,Operation,Time_Min,Qty,Cast_Rej,Mach_Rej,Goo
 2026-02-05,Vikas Kadam,Shift 2,Yes,CNC-62,3628939,OP20,120,50,0,0,50
 2026-02-06,Vikas Kadam,Shift 2,Yes,CNC-68,3095220,OP10,210,10,0,0,10
 2026-02-07,Vikas Kadam,Shift 2,Yes,CNC-68,3069778,OP10,240,10,0,0,10
-2026-02-10,Vikas Kadam,Shift 1,Yes,CNC-98,3814121,OP10,150,25,0,0,25

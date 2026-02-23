@@ -132,7 +132,6 @@ Date,Operator,Shift,OT,Machine,Part,Operation,Time_Min,Qty,Cast_Rej,Mach_Rej,Goo
 2026-02-08,Nileshwari Bisen,Shift 1,No,CNC-98,5057-15D,OP20,300,400,0,0,400
 2026-02-08,Nileshwari Bisen,Shift 1,No,CNC-98,5057-15D,OP30,60,60,0,0,60
 2026-02-09,Nileshwari Bisen,Shift 1,Yes,CNC-87,5326-17D,OP10,570,90,17,0,73
-2026-02-10,Nileshwari Bisen,Shift 1,Yes,CNC-87,5326-17D,OP10,570,90,20,0,70
 2026-02-01,Sebu Ali,Shift 1,No,CNC-77,5057-15D,OP30,240,212,0,0,212
 2026-02-01,Sebu Ali,Shift 1,No,CNC-77,5057-15D,OP20,30,41,0,0,41
 2026-02-02,Sebu Ali,Shift 2,Yes,CNC-98,3935363,OP20,360,40,1,0,39
@@ -147,7 +146,6 @@ Date,Operator,Shift,OT,Machine,Part,Operation,Time_Min,Qty,Cast_Rej,Mach_Rej,Goo
 2026-02-06,Ninad Kangutkar,Shift 2,No,CNC-62,3095222,OP20,150,26,1,0,25
 2026-02-07,Ninad Kangutkar,Shift 2,Yes,CNC-62,319206,OP10,570,18,1,0,17
 2026-02-09,Ninad Kangutkar,Shift 1,Yes,CNC-62,319206,OP10,510,16,0,0,16
-2026-02-10,Ninad Kangutkar,Shift 1,Yes,CNC-62,319206,OP10,570,18,0,0,18
 2026-02-02,Anil Shirtar,Shift 2,Yes,CNC-25,5057-15D,OP10,570,110,0,0,110
 2026-02-03,Anil Shirtar,Shift 2,Yes,CNC-25,5057-15D,OP10,570,180,0,0,180
 2026-02-04,Anil Shirtar,Shift 1,Yes,CNC-25,5057-15D,OP10,420,140,0,0,140
@@ -155,7 +153,6 @@ Date,Operator,Shift,OT,Machine,Part,Operation,Time_Min,Qty,Cast_Rej,Mach_Rej,Goo
 2026-02-06,Anil Shirtar,Shift 2,Yes,CNC-25,5057-15D,OP10,570,180,0,0,180
 2026-02-07,Anil Shirtar,Shift 2,Yes,CNC-87,5326-17D,OP10,570,90,0,0,90
 2026-02-09,Anil Shirtar,Shift 1,Yes,CNC-25,5057-15D,OP10,570,180,0,0,180
-2026-02-10,Anil Shirtar,Shift 1,Yes,CNC-25,5057-15D,OP10,570,235,0,0,235
 2026-02-02,Shrikant Vishwakarma,Shift 1,Yes,CNC-25,5057-15D,OP10,570,180,0,0,180
 2026-02-03,Shrikant Vishwakarma,Shift 1,Yes,CNC-25,5057-15D,OP10,570,180,0,0,180
 2026-02-04,Shrikant Vishwakarma,Shift 1,Yes,CNC-62,3002183,OP20,180,60,0,0,60
@@ -163,7 +160,6 @@ Date,Operator,Shift,OT,Machine,Part,Operation,Time_Min,Qty,Cast_Rej,Mach_Rej,Goo
 2026-02-05,Shrikant Vishwakarma,Shift 1,Yes,CNC-98,5057-15D,OP20,30,30,0,0,30
 2026-02-06,Shrikant Vishwakarma,Shift 1,Yes,CNC-68,3095220,OP10,510,23,0,0,23
 2026-02-07,Shrikant Vishwakarma,Shift 1,Yes,CNC-77,209808,OP10&20,90,10,0,2,8
-2026-02-10,Shrikant Vishwakarma,Shift 2,Yes,CNC-87,5326-17D,OP10,570,90,16,0,74
 2026-02-02,Aashirwad,Shift 2,Yes,CNC-87,5326-17D,OP10,120,20,0,0,20
 2026-02-03,Aashirwad,Shift 2,Yes,CNC-68,5694700,OP10,570,36,0,1,35
 2026-02-04,Aashirwad,Shift 2,Yes,CNC-68,5694700,OP10,120,8,0,0,8
@@ -189,4 +185,3 @@ Date,Operator,Shift,OT,Machine,Part,Operation,Time_Min,Qty,Cast_Rej,Mach_Rej,Goo
 2026-02-07,Vikas Kadam,Shift 2,Yes,CNC-54,3628939,OP10,240,40,0,0,40
 2026-02-09,Vikas Kadam,Shift 1,Yes,CNC-54,3628939,OP10,60,9,0,0,9
 2026-02-09,Vikas Kadam,Shift 1,Yes,CNC-54,213351,OP10,360,24,0,0,24
-2026-02-10,Vikas Kadam,Shift 1,Yes,CNC-54,213351,OP20,60,10,0,0,10
