@@ -112,7 +112,9 @@ def backup_to_drive():
 
         results = service.files().list(
             q=f"name='{FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder'",
-            fields="files(id, name)"
+            fields="files(id, name)",
+            supportsAllDrives=True,
+            includeItemsFromAllDrives=True
         ).execute()
 
         items = results.get('files', [])
@@ -152,7 +154,8 @@ def backup_to_drive():
         service.files().create(
             body=file_metadata,
             media_body=media,
-            fields='id'
+            fields='id',
+            supportsAllDrives=True
         ).execute()
 
         print("🟢 BACKUP SUCCESSFULLY UPLOADED")
