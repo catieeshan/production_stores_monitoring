@@ -1141,6 +1141,52 @@ def save_production_entry():
     other_data = json.loads(request.form.get("other_data", "[]"))
     loss_data = json.loads(request.form.get("loss_data", "[]"))
 
+    # =========================================================
+    # 🔴 STRICT VALIDATION - PRODUCTION ENTRY (OPTION A)
+    # =========================================================
+
+    def blank(v):
+        return v is None or str(v).strip() == "" or str(v).lower() == "nan"
+
+    errors = []
+
+    # ---------- MAIN MACHINE ----------
+    for i, r in enumerate(main_data, start=1):
+
+        if blank(r.get("part")):
+            errors.append(f"Main row {i}: Select Part")
+
+        if blank(r.get("operation")):
+            errors.append(f"Main row {i}: Select Operation")
+
+        if float(r.get("qty") or 0) <= 0:
+            errors.append(f"Main row {i}: Enter Produced Qty")
+
+        if float(r.get("time") or 0) <= 0:
+            errors.append(f"Main row {i}: Enter Time")
+
+    # ---------- OTHER MACHINE ----------
+    for i, r in enumerate(other_data, start=1):
+
+        if blank(r.get("machine")):
+            errors.append(f"Other row {i}: Select Machine")
+
+        if blank(r.get("part")):
+            errors.append(f"Other row {i}: Select Part")
+
+        if blank(r.get("operation")):
+            errors.append(f"Other row {i}: Select Operation")
+
+        if float(r.get("qty") or 0) <= 0:
+            errors.append(f"Other row {i}: Enter Produced Qty")
+
+        if float(r.get("time") or 0) <= 0:
+            errors.append(f"Other row {i}: Enter Time")
+
+    # ---------- STOP SAVE ----------
+    if errors:
+        return "<br>".join(errors), 400
+
     os.makedirs("data", exist_ok=True)
 
     # =====================================================
