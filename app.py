@@ -1568,15 +1568,25 @@ def delete_daily_entry():
         prod_df["Time_Min"], errors="coerce"
     )
 
-    # ---------- MATCH PRODUCTION ENTRY ----------
+    # ---------- MATCH PRODUCTION ENTRY SAFELY ----------
+
+    # Normalize request values
+    req_part = None if req_part in ["", "nan", None] else req_part
+    req_operation = None if req_operation in ["", "nan", None] else req_operation
+
     mask = (
         (prod_df["Date"] == req_date) &
         (prod_df["Operator"] == req_operator) &
         (prod_df["Shift"] == req_shift) &
         (prod_df["Machine"] == req_machine) &
-        (prod_df["Part"] == req_part) &
-        (prod_df["Operation"] == req_operation) &
-        (prod_df["Time_Min"].sub(req_time).abs() < 0.0001)
+        (
+            (prod_df["Part"] == req_part) |
+            (prod_df["Part"].isna() & (req_part is None))
+        ) &
+        (
+            (prod_df["Operation"] == req_operation) |
+            (prod_df["Operation"].isna() & (req_operation is None))
+        )
     )
 
     before = len(prod_df)
