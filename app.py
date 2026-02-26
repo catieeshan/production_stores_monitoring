@@ -320,12 +320,24 @@ def backup_to_drive():
 
                 old_files = all_files[KEEP_LIMIT:]
 
+                deleted = 0
+
                 for f in old_files:
-                    print("🗑 Deleting old backup:", f["name"])
-                    service.files().delete(
-                        fileId=f["id"],
-                        supportsAllDrives=True
-                    ).execute()
+                    try:
+                        print("🗑 Deleting old backup:", f["name"])
+
+                        service.files().delete(
+                            fileId=f["id"],
+                            supportsAllDrives=True
+                        ).execute()
+
+                        deleted += 1
+
+                    except Exception as del_err:
+                        print("⚠ Skip delete error:", f["name"], str(del_err))
+                        continue
+
+                print(f"🟢 Retention cleanup complete. Deleted {deleted} old backups.")
 
                 print("🟢 Old backups cleaned. Now kept latest 30.")
 
