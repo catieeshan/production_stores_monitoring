@@ -172,8 +172,8 @@
         }
 
         /* ================================
-           LOSS / OTHER MACHINE TOGGLE
-        ================================= */
+        LOSS / OTHER MACHINE TOGGLE (SMART)
+        ================================ */
         function onReasonChange() {
 
             const reason = document.getElementById("lossReasonSelect").value;
@@ -181,29 +181,39 @@
             const lossSection = document.getElementById("lossInputSection");
             const otherSection = document.getElementById("otherMachineSection");
 
-            // =========================================
-            // IF OTHER MACHINE SELECTED
-            // =========================================
+            // Nothing selected
+            if (reason === "") {
+                lossSection.style.display = "none";
+                otherSection.style.display = "none";
+                return;
+            }
+
+            // ----------------------------------------
+            // WORK DONE ON OTHER MACHINE SELECTED
+            // ----------------------------------------
             if (reason === "Work Done on Other Machine") {
 
-                // show other machine section
+                // always show other machine table
                 otherSection.style.display = "block";
 
-                // hide loss input
-                lossSection.style.display = "none";
+                // show loss table ONLY if entries already exist
+                if (lossEntries.length > 0) {
+                    lossSection.style.display = "block";
+                } else {
+                    lossSection.style.display = "none";
+                }
             }
-            else if (reason !== "") {
+
+            // ----------------------------------------
+            // ANY NORMAL LOSS SELECTED
+            // ----------------------------------------
+            else {
 
                 // show loss input
                 lossSection.style.display = "block";
 
-                // 🔴 DO NOT DELETE OTHER MACHINE DATA
-                // just keep it hidden visually
+                // ALSO keep other machine visible
                 otherSection.style.display = "block";
-            }
-            else {
-
-                lossSection.style.display = "none";
             }
 
             recalcTotals();
