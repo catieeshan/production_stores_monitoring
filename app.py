@@ -287,26 +287,38 @@ def backup_to_drive():
         print("🟢 BACKUP SUCCESSFULLY UPLOADED")
 
         # =========================================================
-        # AUTO RETENTION POLICY (KEEP LAST 30 BACKUPS)
+        # AUTO RETENTION POLICY (KEEP LAST 30 BACKUPS) - FIXED
         # =========================================================
-        try:
+        print("🔥 RETENTION ENGINE RUNNING")
+        try:            
             print("🔵 Checking old backups for cleanup...")
 
-            # get all zip files inside folder
-            results = service.files().list(
-                q=f"'{folder_id}' in parents and name contains 'backup_'",
-                fields="files(id, name, createdTime)",
-                orderBy="createdTime desc",
-                supportsAllDrives=True,
-                includeItemsFromAllDrives=True
-            ).execute()
+            all_files = []
+            page_token = None
 
-            files = results.get("files", [])
+            while True:
+                response = service.files().list(
+                    q=f"'{folder_id}' in parents and name contains 'backup_'",
+                    fields="nextPageToken, files(id, name, createdTime)",
+                    orderBy="createdTime desc",
+                    supportsAllDrives=True,
+                    includeItemsFromAllDrives=True,
+                    pageToken=page_token
+                ).execute()
+
+                all_files.extend(response.get("files", []))
+                page_token = response.get("nextPageToken")
+
+                if not page_token:
+                    break
+
+            print(f"🔵 Total backups found: {len(all_files)}")
 
             KEEP_LIMIT = 30
 
-            if len(files) > KEEP_LIMIT:
-                old_files = files[KEEP_LIMIT:]
+            if len(all_files) > KEEP_LIMIT:
+
+                old_files = all_files[KEEP_LIMIT:]
 
                 for f in old_files:
                     print("🗑 Deleting old backup:", f["name"])
@@ -315,7 +327,7 @@ def backup_to_drive():
                         supportsAllDrives=True
                     ).execute()
 
-                print("🟢 Old backups cleaned")
+                print("🟢 Old backups cleaned. Now kept latest 30.")
 
             else:
                 print("🟢 Retention OK — no deletion needed")
