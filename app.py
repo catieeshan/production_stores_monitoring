@@ -1379,7 +1379,7 @@ def operator_absenteeism():
             })
 
     # ---------- MONTHS ----------
-    months = [
+    months = [{"value": "all", "label": "All"}] + [
         {"value": "01", "label": "January"},
         {"value": "02", "label": "February"},
         {"value": "03", "label": "March"},
@@ -1453,7 +1453,12 @@ def reports_daily():
     import pandas as pd
     import os
 
+    from datetime import datetime
+
     selected_month = request.args.get("month", "").strip()
+
+    if not selected_month:
+        selected_month = datetime.today().strftime("%m")
     selected_date = request.args.get("date", "").strip()
     operator_filter = request.args.get("operator", "").strip()
     part_filter = request.args.get("part", "").strip()
@@ -1481,7 +1486,20 @@ def reports_daily():
             operators=[],
             parts=[],
             operations=[],
-            months=[],
+            months=[{"value": "all", "label": "All"}] + [
+                {"value": "01", "label": "January"},
+                {"value": "02", "label": "February"},
+                {"value": "03", "label": "March"},
+                {"value": "04", "label": "April"},
+                {"value": "05", "label": "May"},
+                {"value": "06", "label": "June"},
+                {"value": "07", "label": "July"},
+                {"value": "08", "label": "August"},
+                {"value": "09", "label": "September"},
+                {"value": "10", "label": "October"},
+                {"value": "11", "label": "November"},
+                {"value": "12", "label": "December"},
+            ],
             selected_month=selected_month,
             selected_date=selected_date,
             operator_filter=operator_filter,
@@ -1521,7 +1539,7 @@ def reports_daily():
     # ---------------- APPLY FILTERS ----------------
     filtered_df = df.copy()
 
-    if selected_month:
+    if selected_month != "all":
         filtered_df = filtered_df[
             filtered_df["Date"].dt.month == int(selected_month)
         ]
@@ -1561,7 +1579,7 @@ def reports_daily():
     parts = sorted(df["Part"].dropna().unique().tolist())
     operations = sorted(df["Operation"].dropna().unique().tolist())
 
-    months = [
+    months = [{"value": "all", "label": "All"}] + [
         {"value": "01", "label": "January"},
         {"value": "02", "label": "February"},
         {"value": "03", "label": "March"},
@@ -1756,7 +1774,7 @@ def export_daily_excel():
     # ================= APPLY FILTERS =================
     filtered_df = df.copy()
 
-    if selected_month:
+    if selected_month and selected_month != "all":
         filtered_df = filtered_df[
             filtered_df["Date"].dt.month == int(selected_month)
         ]
@@ -1877,7 +1895,14 @@ def reports_operator():
         global_end = None
 
     operator_filter = request.args.get("operator", "").strip()
+    
+    from datetime import datetime
+
     month_filter = request.args.get("month", "").strip()
+
+    # ✅ Default to current month if nothing selected
+    if not month_filter:
+        month_filter = datetime.today().strftime("%m")
 
     prod_df = pd.concat([main_df, other_df], ignore_index=True)
 
@@ -1888,7 +1913,7 @@ def reports_operator():
         absent_df["Date"] = pd.to_datetime(absent_df["Date"], errors="coerce")
 
     # ---------- MONTH FILTER ----------
-    if month_filter:
+    if month_filter != "all":
         prod_df = prod_df[prod_df["Date"].dt.month == int(month_filter)]
         if not absent_df.empty:
             absent_df = absent_df[absent_df["Date"].dt.month == int(month_filter)]
@@ -1909,11 +1934,11 @@ def reports_operator():
             ),
             operator_filter=operator_filter,
             selected_month=month_filter,
-            months=[
+            months=[{"value": "all", "label": "All"}] + [
                 {"value": f"{i:02d}", "label": m}
                 for i, m in enumerate(
                     ["January","February","March","April","May","June",
-                     "July","August","September","October","November","December"], 1
+                    "July","August","September","October","November","December"], 1
                 )
             ],
             no_data_msg="No operator performance data available for the selected month."
@@ -1946,11 +1971,11 @@ def reports_operator():
             operators=sorted(prod_df["Operator"].dropna().unique().tolist()),
             operator_filter=operator_filter,
             selected_month=month_filter,
-            months=[
+            months=[{"value": "all", "label": "All"}] + [
                 {"value": f"{i:02d}", "label": m}
                 for i, m in enumerate(
                     ["January","February","March","April","May","June",
-                     "July","August","September","October","November","December"], 1
+                    "July","August","September","October","November","December"], 1
                 )
             ],
             no_data_msg="No operator performance data available for the selected month."
@@ -1977,9 +2002,8 @@ def reports_operator():
     # ---------- DATE GRID (FINAL CORRECT LOGIC) ----------
     operators = daily_prod["Operator"].unique()
 
-    if month_filter:
-        # full selected month
-        year = global_start.year if global_start is not None else datetime.today().year
+    if month_filter and month_filter != "all":
+        year = datetime.today().year
         month = int(month_filter)
 
         start_date = pd.Timestamp(year=year, month=month, day=1)
@@ -2073,11 +2097,11 @@ def reports_operator():
         operators=sorted(prod_df["Operator"].dropna().unique().tolist()),
         operator_filter=operator_filter,
         selected_month=month_filter,
-        months=[
+        months=[{"value": "all", "label": "All"}] + [
             {"value": f"{i:02d}", "label": m}
             for i, m in enumerate(
                 ["January","February","March","April","May","June",
-                 "July","August","September","October","November","December"], 1
+                "July","August","September","October","November","December"], 1
             )
         ]
     )
@@ -2096,7 +2120,13 @@ def export_operator_report():
 
     # ================= FILTERS =================
     operator_filter = request.args.get("operator", "").strip()
+    from datetime import datetime
+
     month_filter = request.args.get("month", "").strip()
+
+    # ✅ Default to current month if nothing selected
+    if not month_filter:
+        month_filter = datetime.today().strftime("%m")
 
     # ================= LOAD FILES =================
     def load(path):
@@ -2120,7 +2150,7 @@ def export_operator_report():
         absent_df["Date"] = pd.to_datetime(absent_df["Date"], errors="coerce")
 
     # ================= FILTER APPLY =================
-    if month_filter:
+    if month_filter and month_filter != "all":
         prod_df = prod_df[prod_df["Date"].dt.month == int(month_filter)]
         if not absent_df.empty:
             absent_df = absent_df[absent_df["Date"].dt.month == int(month_filter)]
@@ -2293,7 +2323,13 @@ def reports_oee():
 
     # ---------- FILTER VALUES ----------
     machine_filter = request.args.get("machine", "").strip()
+    from datetime import datetime
+
     month_filter = request.args.get("month", "").strip()
+
+    # ✅ Default to current month if nothing selected
+    if not month_filter:
+        month_filter = datetime.today().strftime("%m")
 
     if df.empty or part_df.empty:
         return render_template(
@@ -2302,7 +2338,14 @@ def reports_oee():
             records=[],
             machines=[],
             machine_filter=machine_filter,
-            selected_month=month_filter
+            selected_month=month_filter,
+            months=[{"value": "all", "label": "All"}] + [
+                {"value": f"{i:02d}", "label": m}
+                for i, m in enumerate(
+                    ["January","February","March","April","May","June",
+                    "July","August","September","October","November","December"], 1
+                )
+            ]
         )
 
     # ---------- NORMALIZE ----------
@@ -2313,7 +2356,7 @@ def reports_oee():
     df["Machine"] = df["Machine"].astype(str).str.strip()
 
     # ---------- MONTH FILTER ----------
-    if month_filter:
+    if month_filter != "all":
         df = df[df["Date"].dt.month == int(month_filter)]
 
     # ---------- MACHINE FILTER ----------
@@ -2330,7 +2373,14 @@ def reports_oee():
                 .dropna().astype(str).str.strip().unique().tolist()
             ),
             machine_filter=machine_filter,
-            selected_month=month_filter
+            selected_month=month_filter,
+            months=[{"value": "all", "label": "All"}] + [
+                {"value": f"{i:02d}", "label": m}
+                for i, m in enumerate(
+                    ["January","February","March","April","May","June",
+                    "July","August","September","October","November","December"], 1
+                )
+            ]
         )
 
     # ---------- MERGE CYCLE TIME ----------
@@ -2358,7 +2408,14 @@ def reports_oee():
                 .dropna().astype(str).str.strip().unique().tolist()
             ),
             machine_filter=machine_filter,
-            selected_month=month_filter
+            selected_month=month_filter,
+            months=[{"value": "all", "label": "All"}] + [
+                {"value": f"{i:02d}", "label": m}
+                for i, m in enumerate(
+                    ["January","February","March","April","May","June",
+                    "July","August","September","October","November","December"], 1
+                )
+            ]
         )
 
     # ---------- EXPECTED QTY ----------
@@ -2429,11 +2486,11 @@ def reports_oee():
         ),
         machine_filter=machine_filter,
         selected_month=month_filter,
-        months=[
+        months=[{"value": "all", "label": "All"}] + [
             {"value": f"{i:02d}", "label": m}
             for i, m in enumerate(
                 ["January","February","March","April","May","June",
-                 "July","August","September","October","November","December"], 1
+                "July","August","September","October","November","December"], 1
             )
         ]
     )
@@ -2452,7 +2509,13 @@ def export_oee_report():
 
     # ================= FILTERS =================
     machine_filter = request.args.get("machine", "").strip()
+    from datetime import datetime
+
     month_filter = request.args.get("month", "").strip()
+
+    # ✅ Default to current month if nothing selected
+    if not month_filter:
+        month_filter = datetime.today().strftime("%m")
 
     # ================= LOAD =================
     def load(path):
@@ -2477,7 +2540,7 @@ def export_oee_report():
     df["Machine"] = df["Machine"].astype(str).str.strip()
 
     # ================= FILTER =================
-    if month_filter:
+    if month_filter != "all":
         df = df[df["Date"].dt.month == int(month_filter)]
 
     if machine_filter:
@@ -2620,7 +2683,13 @@ def reports_machine():
     df = pd.concat([main_df, other_df], ignore_index=True)
 
     machine_filter = request.args.get("machine", "").strip()
+    from datetime import datetime
+
     month_filter = request.args.get("month", "").strip()
+
+    # ✅ Default to current month if nothing selected
+    if not month_filter:
+        month_filter = datetime.today().strftime("%m")
 
     if df.empty:
         return render_template(
@@ -2630,7 +2699,20 @@ def reports_machine():
             machines=[],
             machine_filter=machine_filter,
             selected_month=month_filter,
-            months=[]
+            months=[{"value": "all", "label": "All"}] + [
+                {"value": "01", "label": "January"},
+                {"value": "02", "label": "February"},
+                {"value": "03", "label": "March"},
+                {"value": "04", "label": "April"},
+                {"value": "05", "label": "May"},
+                {"value": "06", "label": "June"},
+                {"value": "07", "label": "July"},
+                {"value": "08", "label": "August"},
+                {"value": "09", "label": "September"},
+                {"value": "10", "label": "October"},
+                {"value": "11", "label": "November"},
+                {"value": "12", "label": "December"},
+            ]
         )
 
     # ---------- NORMALIZE ----------
@@ -2639,7 +2721,7 @@ def reports_machine():
     df["Machine"] = df["Machine"].astype(str).str.strip()
 
     # ---------- MONTH FILTER ----------
-    if month_filter:
+    if month_filter != "all":
         df = df[df["Date"].dt.month == int(month_filter)]
 
     # ---------- MACHINE FILTER ----------
@@ -2655,11 +2737,11 @@ def reports_machine():
             machines=sorted(pd.concat([main_df, other_df])["Machine"].dropna().unique().tolist()),
             machine_filter=machine_filter,
             selected_month=month_filter,
-            months=[
+            months=[{"value": "all", "label": "All"}] + [
                 {"value": f"{i:02d}", "label": m}
                 for i, m in enumerate(
                     ["January","February","March","April","May","June",
-                     "July","August","September","October","November","December"], 1
+                    "July","August","September","October","November","December"], 1
                 )
             ]
         )
@@ -2709,11 +2791,11 @@ def reports_machine():
         machines=all_machines,
         machine_filter=machine_filter,
         selected_month=month_filter,
-        months=[
+        months=[{"value": "all", "label": "All"}] + [
             {"value": f"{i:02d}", "label": m}
             for i, m in enumerate(
                 ["January","February","March","April","May","June",
-                 "July","August","September","October","November","December"], 1
+                "July","August","September","October","November","December"], 1
             )
         ]
     )
@@ -2732,7 +2814,13 @@ def export_machine_report():
 
     # ================= FILTERS =================
     machine_filter = request.args.get("machine", "").strip()
+    from datetime import datetime
+
     month_filter = request.args.get("month", "").strip()
+
+    # ✅ Default to current month if nothing selected
+    if not month_filter:
+        month_filter = datetime.today().strftime("%m")
 
     # ================= LOAD =================
     def load(path):
@@ -2754,7 +2842,7 @@ def export_machine_report():
     df["Machine"] = df["Machine"].astype(str).str.strip()
 
     # ================= FILTER =================
-    if month_filter:
+    if month_filter != "all":
         df = df[df["Date"].dt.month == int(month_filter)]
 
     if machine_filter:
@@ -2856,7 +2944,12 @@ def reports_loss():
 
     LOSS_FILE = "data/production_loss.csv"
 
+    from datetime import datetime
+
     selected_month = request.args.get("month", "").strip()
+
+    if not selected_month:
+        selected_month = datetime.today().strftime("%m")
 
     if not os.path.exists(LOSS_FILE) or os.path.getsize(LOSS_FILE) == 0:
         return render_template(
@@ -2866,7 +2959,20 @@ def reports_loss():
             total_minutes=0,
             total_hours=0,
             selected_month=selected_month,
-            months=[]
+            months=[{"value": "all", "label": "All"}] + [
+                {"value": "01", "label": "January"},
+                {"value": "02", "label": "February"},
+                {"value": "03", "label": "March"},
+                {"value": "04", "label": "April"},
+                {"value": "05", "label": "May"},
+                {"value": "06", "label": "June"},
+                {"value": "07", "label": "July"},
+                {"value": "08", "label": "August"},
+                {"value": "09", "label": "September"},
+                {"value": "10", "label": "October"},
+                {"value": "11", "label": "November"},
+                {"value": "12", "label": "December"},
+            ]
         )
 
     df = pd.read_csv(LOSS_FILE)
@@ -2879,7 +2985,20 @@ def reports_loss():
             total_minutes=0,
             total_hours=0,
             selected_month=selected_month,
-            months=[]
+            months=[{"value": "all", "label": "All"}] + [
+                {"value": "01", "label": "January"},
+                {"value": "02", "label": "February"},
+                {"value": "03", "label": "March"},
+                {"value": "04", "label": "April"},
+                {"value": "05", "label": "May"},
+                {"value": "06", "label": "June"},
+                {"value": "07", "label": "July"},
+                {"value": "08", "label": "August"},
+                {"value": "09", "label": "September"},
+                {"value": "10", "label": "October"},
+                {"value": "11", "label": "November"},
+                {"value": "12", "label": "December"},
+            ]
         )
 
     # ---------- NORMALIZE ----------
@@ -2888,7 +3007,7 @@ def reports_loss():
     df["Loss_Reason"] = df["Loss_Reason"].astype(str)
 
     # ---------- MONTH FILTER ----------
-    if selected_month:
+    if selected_month != "all":
         df = df[df["Date"].dt.month == int(selected_month)]
 
     if df.empty:
@@ -2921,7 +3040,7 @@ def reports_loss():
     total_minutes = int(summary["Total_Time"].sum())
     total_hours = round(total_minutes / 60, 2)
 
-    months = [
+    months = [{"value": "all", "label": "All"}] + [
         {"value": "01", "label": "January"},
         {"value": "02", "label": "February"},
         {"value": "03", "label": "March"},
@@ -2976,7 +3095,7 @@ def export_loss_report():
     df["Loss_Reason"] = df["Loss_Reason"].astype(str)
 
     # ================= FILTER =================
-    if month_filter:
+    if month_filter and month_filter != "all":
         df = df[df["Date"].dt.month == int(month_filter)]
 
     if df.empty:

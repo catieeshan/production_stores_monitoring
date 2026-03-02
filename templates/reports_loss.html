@@ -8,8 +8,7 @@
     <form method="get" class="form-row">
 
         <label>Month</label>
-        <select name="month">
-            <option value="">All</option>
+        <select name="month">            
             {% for m in months %}
                 <option value="{{ m.value }}"
                     {% if selected_month == m.value %}selected{% endif %}>

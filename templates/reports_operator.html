@@ -28,7 +28,6 @@
         <!-- Month -->
         <label>Month</label>
         <select name="month">
-            <option value="">All</option>
             {% for m in months %}
                 <option value="{{ m.value }}"
                     {% if selected_month == m.value %}selected{% endif %}>
