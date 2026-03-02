@@ -43,6 +43,18 @@
 
         <hr>
 
+        <!-- 🔐 ADMIN SECTION -->
+        <div class="menu-section">
+            <div class="menu-title">Admin</div>
+
+            <div class="menu-item {% if active_report=='reset' %}active{% endif %}"
+                onclick="location.href='/admin/reset_page'">
+                🔐 Reset Production Data
+            </div>
+        </div>
+
+        <hr>
+
         <div class="menu-item" onclick="location.href='/production'">
             ⬅ Back to Production Home
         </div>

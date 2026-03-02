@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Reset</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="topbar">
+    Machine Shop Production Monitoring System
+</div>
+
+<div class="layout">
+
+    <!-- Use same sidebar as reports layout -->
+    <div class="sidebar">
+
+        <div class="menu-section">
+            <div class="menu-title">Reports</div>
+            <div class="menu-item" onclick="location.href='/reports/daily'">📊 Reports</div>
+        </div>
+
+        <hr>
+
+        <div class="menu-section">
+            <div class="menu-title">Admin</div>
+            <div class="menu-item" style="font-weight:bold;">
+                🔐 Reset Production Data
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="menu-section">
+            <div class="menu-item" onclick="location.href='/production'">
+                ⬅ Back to Production Home
+            </div>
+        </div>
+
+    </div>
+
+    <div class="main-content">
+
+        <h2 style="color:#c62828;">⚠ Reset Production Data</h2>
+
+        <p>
+            This will permanently delete all production transaction data.
+            Master data will NOT be affected.
+        </p>
+
+        <div style="margin-top:20px;">
+            <input type="password" id="resetCodeInput" placeholder="Enter Admin Reset Code">
+
+            <button onclick="confirmReset()" 
+                    style="background:#c62828; color:white; border:none; padding:7px 14px; border-radius:4px;">
+                🔥 Confirm Reset
+            </button>
+        </div>
+
+        <div id="resetMessage" style="margin-top:15px; font-weight:600;"></div>
+
+    </div>
+
+</div>
+
+<script>
+function confirmReset() {
+
+    const code = document.getElementById("resetCodeInput").value;
+    const msgBox = document.getElementById("resetMessage");
+
+    if(!code){
+        msgBox.style.color = "#c62828";
+        msgBox.innerText = "Enter admin reset code.";
+        return;
+    }
+
+    if(!confirm("WARNING: This will permanently delete ALL production data.\n\nAre you absolutely sure?")){
+        return;
+    }
+
+    fetch("/admin/reset_production", {
+        method: "POST",
+        headers: {"Content-Type": "application/x-www-form-urlencoded"},
+        body: "code=" + encodeURIComponent(code)
+    })
+    .then(res => {
+        if(res.status === 200){
+            msgBox.style.color = "green";
+            msgBox.innerText = "Production data reset successfully.";
+            document.getElementById("resetCodeInput").value = "";
+        } else {
+            msgBox.style.color = "#c62828";
+            msgBox.innerText = "Invalid code or reset failed.";
+        }
+    });
+}
+</script>
+
+</body>
+</html>

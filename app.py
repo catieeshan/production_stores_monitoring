@@ -4929,6 +4929,72 @@ def shopfloor_tv():
     )
 
 # =========================================
+# 🔐 ADMIN RESET PRODUCTION DATA (SAFE VERSION)
+# =========================================
+
+RESET_VERIFICATION_CODE = "resetcati123"
+
+@app.route("/admin/reset_production", methods=["POST"])
+def reset_production_data():
+    import os
+    import pandas as pd
+
+    code = request.form.get("code", "")
+
+    # ---------------- VERIFY ADMIN CODE ----------------
+    if code != RESET_VERIFICATION_CODE:
+        return "INVALID_CODE", 403
+
+    try:
+        print("🔵 ADMIN RESET INITIATED")
+
+        # ---------------- BACKUP BEFORE RESET ----------------
+        backup_to_drive()
+        print("🟢 Backup completed before reset")
+
+        files_to_reset = [
+            "data/production_main.csv",
+            "data/production_other_machine.csv",
+            "data/production_loss.csv"
+        ]
+
+        os.makedirs("data", exist_ok=True)
+
+        for path in files_to_reset:
+
+            if os.path.exists(path) and os.path.getsize(path) > 0:
+
+                # Read existing header structure
+                df = pd.read_csv(path)
+                columns = df.columns.tolist()
+
+            else:
+                # Define fallback headers (in case file missing)
+                if "main" in path:
+                    columns = ["Date","Operator","Shift","OT","Machine","Part","Operation",
+                               "Time_Min","Qty","Cast_Rej","Mach_Rej","Good_Qty"]
+                elif "other" in path:
+                    columns = ["Date","Operator","Shift","OT","Machine","Part","Operation",
+                               "Time_Min","Qty","Cast_Rej","Mach_Rej","Good_Qty"]
+                else:  # loss file
+                    columns = ["Date","Operator","Shift","OT","Machine","Loss_Reason","Time_Min"]
+
+            # Write clean empty file with headers
+            pd.DataFrame(columns=columns).to_csv(path, index=False)
+
+        print("🟢 PRODUCTION DATA RESET SUCCESSFUL")
+
+        return "RESET_OK", 200
+
+    except Exception as e:
+        print("🔴 RESET FAILED:", str(e))
+        return "RESET_FAILED", 500
+    
+@app.route("/admin/reset_page")
+def admin_reset_page():
+    return render_template("admin_reset.html", active_report="reset")
+
+# =========================================
 # MAIN
 # =========================================
 
