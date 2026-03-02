@@ -373,8 +373,21 @@ def get_dashboard_kpis():
 
     prod_df = pd.concat([main_df, other_df], ignore_index=True)
 
+    def empty_dashboard():
+        return {
+            "last_days": [],
+            "production_cards": {
+                "date": "No Data",
+                "total_good_qty": 0,
+                "total_defects": 0
+            },
+            "top_parts": [],
+            "loss_pies": [],
+            "performance": []
+        }
+    
     if prod_df.empty:
-        return {}
+        return empty_dashboard()
 
     # ---------------- NORMALIZE ----------------
     prod_df["Date"] = pd.to_datetime(prod_df["Date"], errors="coerce").dt.date
@@ -399,7 +412,7 @@ def get_dashboard_kpis():
     )
 
     if len(available_days) == 0:
-        return {}
+        return empty_dashboard()
 
     # 🔵 For KPI + Top Parts + Loss → last 3 days
     last_3_days = available_days[-3:]
@@ -3176,13 +3189,6 @@ def export_loss_report():
 @app.route("/management_dashboard", methods=["GET"])
 def management_dashboard():
     dashboard = get_dashboard_kpis()
-
-    if not dashboard:
-        return render_template(
-            "management_dashboard.html",
-            dashboard={}
-        )
-
     return render_template(
         "management_dashboard.html",
         dashboard=dashboard
