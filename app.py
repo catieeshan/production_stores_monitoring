@@ -2948,110 +2948,19 @@ def export_machine_report():
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
-# LOSS ANALYSIS REPORT (ONE PIE – LOSS DISTRIBUTION)
+# LOSS ANALYSIS REPORT (ONE PIE – LOSS DISTRIBUTION + DETAIL TABLE)
 
 @app.route("/reports/loss", methods=["GET"])
 def reports_loss():
     import pandas as pd
     import os
+    from datetime import datetime
 
     LOSS_FILE = "data/production_loss.csv"
 
-    from datetime import datetime
-
     selected_month = request.args.get("month", "").strip()
-
     if not selected_month:
         selected_month = datetime.today().strftime("%m")
-
-    if not os.path.exists(LOSS_FILE) or os.path.getsize(LOSS_FILE) == 0:
-        return render_template(
-            "reports_loss.html",
-            active_report="loss",
-            loss_data=[],
-            total_minutes=0,
-            total_hours=0,
-            selected_month=selected_month,
-            months=[{"value": "all", "label": "All"}] + [
-                {"value": "01", "label": "January"},
-                {"value": "02", "label": "February"},
-                {"value": "03", "label": "March"},
-                {"value": "04", "label": "April"},
-                {"value": "05", "label": "May"},
-                {"value": "06", "label": "June"},
-                {"value": "07", "label": "July"},
-                {"value": "08", "label": "August"},
-                {"value": "09", "label": "September"},
-                {"value": "10", "label": "October"},
-                {"value": "11", "label": "November"},
-                {"value": "12", "label": "December"},
-            ]
-        )
-
-    df = pd.read_csv(LOSS_FILE)
-
-    if df.empty:
-        return render_template(
-            "reports_loss.html",
-            active_report="loss",
-            loss_data=[],
-            total_minutes=0,
-            total_hours=0,
-            selected_month=selected_month,
-            months=[{"value": "all", "label": "All"}] + [
-                {"value": "01", "label": "January"},
-                {"value": "02", "label": "February"},
-                {"value": "03", "label": "March"},
-                {"value": "04", "label": "April"},
-                {"value": "05", "label": "May"},
-                {"value": "06", "label": "June"},
-                {"value": "07", "label": "July"},
-                {"value": "08", "label": "August"},
-                {"value": "09", "label": "September"},
-                {"value": "10", "label": "October"},
-                {"value": "11", "label": "November"},
-                {"value": "12", "label": "December"},
-            ]
-        )
-
-    # ---------- NORMALIZE ----------
-    df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
-    df["Time_Min"] = pd.to_numeric(df["Time_Min"], errors="coerce").fillna(0)
-    df["Loss_Reason"] = df["Loss_Reason"].astype(str)
-
-    # ---------- MONTH FILTER ----------
-    if selected_month != "all":
-        df = df[df["Date"].dt.month == int(selected_month)]
-
-    if df.empty:
-        return render_template(
-            "reports_loss.html",
-            active_report="loss",
-            loss_data=[],
-            total_minutes=0,
-            total_hours=0,
-            selected_month=selected_month,
-            months=[]
-        )
-
-    # ---------- AGGREGATE ----------
-    summary = (
-        df.groupby("Loss_Reason", as_index=False)
-        .agg(Total_Time=("Time_Min", "sum"))
-    )
-
-    # ---------- CHART DATA ----------
-    loss_data = [
-        {
-            "label": row["Loss_Reason"],
-            "value": float(row["Total_Time"])
-        }
-        for _, row in summary.iterrows()
-        if row["Total_Time"] > 0
-    ]
-
-    total_minutes = int(summary["Total_Time"].sum())
-    total_hours = round(total_minutes / 60, 2)
 
     months = [{"value": "all", "label": "All"}] + [
         {"value": "01", "label": "January"},
@@ -3068,6 +2977,80 @@ def reports_loss():
         {"value": "12", "label": "December"},
     ]
 
+    # 🔵 DEFAULT EMPTY STRUCTURE
+    empty_response = render_template(
+        "reports_loss.html",
+        active_report="loss",
+        loss_data=[],
+        total_minutes=0,
+        total_hours=0,
+        selected_month=selected_month,
+        months=months,
+        loss_table=[]  # 🔵 NEW
+    )
+
+    if not os.path.exists(LOSS_FILE) or os.path.getsize(LOSS_FILE) == 0:
+        return empty_response
+
+    df = pd.read_csv(LOSS_FILE)
+
+    if df.empty:
+        return empty_response
+
+    # ---------- NORMALIZE ----------
+    df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+    df["Time_Min"] = pd.to_numeric(df["Time_Min"], errors="coerce").fillna(0)
+    df["Loss_Reason"] = df["Loss_Reason"].astype(str)
+    df["Machine"] = df["Machine"].astype(str)
+
+    # ---------- MONTH FILTER ----------
+    if selected_month != "all":
+        df = df[df["Date"].dt.month == int(selected_month)]
+
+    if df.empty:
+        return empty_response
+
+    # ---------- AGGREGATE (PIE) ----------
+    summary = (
+        df.groupby("Loss_Reason", as_index=False)
+        .agg(Total_Time=("Time_Min", "sum"))
+    )
+
+    loss_data = [
+        {
+            "label": row["Loss_Reason"],
+            "value": float(row["Total_Time"])
+        }
+        for _, row in summary.iterrows()
+        if row["Total_Time"] > 0
+    ]
+
+    total_minutes = int(summary["Total_Time"].sum())
+    total_hours = round(total_minutes / 60, 2)
+
+    # 🔵 ---------- DETAILED TABLE ----------
+    detail_df = df.copy()
+
+    detail_df["Date_Display"] = detail_df["Date"].dt.strftime("%d-%m-%Y")
+
+    detail_df = detail_df.sort_values(
+        by=["Date", "Machine"],
+        ascending=[False, True]
+    )
+
+    loss_table = detail_df[[
+        "Date_Display",
+        "Machine",
+        "Time_Min",
+        "Loss_Reason"
+    ]].copy()
+
+    loss_table.rename(columns={
+        "Date_Display": "Date",
+        "Time_Min": "Loss_Min",
+        "Loss_Reason": "Reason"
+    }, inplace=True)
+
     return render_template(
         "reports_loss.html",
         active_report="loss",
@@ -3075,7 +3058,8 @@ def reports_loss():
         total_minutes=total_minutes,
         total_hours=total_hours,
         selected_month=selected_month,
-        months=months
+        months=months,
+        loss_table=loss_table.to_dict(orient="records")  # 🔵 NEW
     )
 
 # =====================================================
