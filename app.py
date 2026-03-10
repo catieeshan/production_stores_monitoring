@@ -143,6 +143,44 @@ def auto_restore_from_drive():
         print("🔴 AUTO RESTORE FAILED:", str(e))
 
 # =========================================
+# REPAIR CORRUPTED LOSS CSV (RUN ONCE)
+# =========================================
+def repair_loss_csv():
+
+    import csv
+    import os
+
+    LOSS_FILE = "data/production_loss.csv"
+
+    if not os.path.exists(LOSS_FILE):
+        return
+
+    repaired_rows = []
+
+    with open(LOSS_FILE, "r", encoding="utf-8", newline="") as f:
+        reader = csv.reader(f)
+
+        for i, row in enumerate(reader):
+
+            # Keep header untouched
+            if i == 0:
+                repaired_rows.append(row)
+                continue
+
+            # Expected 8 columns
+            if len(row) > 8:
+                remarks = ",".join(row[7:])
+                row = row[:7] + [remarks]
+
+            repaired_rows.append(row)
+
+    with open(LOSS_FILE, "w", encoding="utf-8", newline="") as f:
+        writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+        writer.writerows(repaired_rows)
+
+    print("🟢 LOSS CSV REPAIRED")
+
+# =========================================
 # APP CONFIG
 # =========================================
 
@@ -155,6 +193,11 @@ try:
     auto_restore_from_drive()
 except Exception as e:
     print("Startup restore error:", e)
+
+try:
+    repair_loss_csv()
+except Exception as e:
+    print("Startup repair error:", e)
 
 DATA_FOLDER = "data"
 UPLOAD_FOLDER = "uploads"
@@ -1318,7 +1361,15 @@ def save_production_entry():
 
         path = "data/production_loss.csv"
         write_header = not os.path.exists(path) or os.path.getsize(path) == 0
-        df_loss.to_csv(path, mode="a", index=False, header=write_header)
+        import csv
+
+        df_loss.to_csv(
+            path,
+            mode="a",
+            index=False,
+            header=write_header,
+            quoting=csv.QUOTE_ALL
+        )
 
     # -----------------------------
     # BACK TO ENTRY PAGE

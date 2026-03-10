@@ -151,16 +151,27 @@ function deleteEntry(btn) {
         method: "POST",
         body: formData
     })
-    .then(res => {
-        if (res.status === 403) {
+    .then(res => res.text())
+    .then(data => {
+        if (data === "INVALID_CODE") {
             alert("❌ Invalid verification code.");
             return;
         }
-        if (!res.ok) {
-            alert("⚠️ Failed to delete entry.");
+
+        if (data === "NOT_FOUND") {
+            alert("⚠️ Entry not found.");
             return;
         }
-        location.reload();
+
+        if (data === "OK") {
+            location.reload();
+            return;
+        }
+
+        alert("⚠️ Failed to delete entry.");
+    })
+    .catch(() => {
+        alert("⚠️ Network error while deleting.");
     });
 }
 </script>
