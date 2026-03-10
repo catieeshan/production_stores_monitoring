@@ -340,7 +340,7 @@ def backup_to_drive():
                 old_files = files[KEEP_LIMIT:]
                 delete_now = old_files[:DELETE_BATCH]
 
-                deleted = 0
+                deleted = len(delete_now)
 
                 for f in delete_now:
                     try:
