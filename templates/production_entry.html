@@ -180,23 +180,20 @@
 
             const lossSection = document.getElementById("lossInputSection");
             const otherSection = document.getElementById("otherMachineSection");
+            const setupSection = document.getElementById("setupSection");
 
-            // Nothing selected
+            setupSection.style.display = "none";
+
             if (reason === "") {
                 lossSection.style.display = "none";
                 otherSection.style.display = "none";
                 return;
             }
 
-            // ----------------------------------------
-            // WORK DONE ON OTHER MACHINE SELECTED
-            // ----------------------------------------
             if (reason === "Work Done on Other Machine") {
 
-                // always show other machine table
                 otherSection.style.display = "block";
 
-                // show loss table ONLY if entries already exist
                 if (lossEntries.length > 0) {
                     lossSection.style.display = "block";
                 } else {
@@ -204,16 +201,14 @@
                 }
             }
 
-            // ----------------------------------------
-            // ANY NORMAL LOSS SELECTED
-            // ----------------------------------------
             else {
 
-                // show loss input
                 lossSection.style.display = "block";
-
-                // ALSO keep other machine visible
                 otherSection.style.display = "block";
+
+                if (reason === "Setup Time") {
+                    setupSection.style.display = "block";
+                }
             }
 
             recalcTotals();
@@ -234,7 +229,23 @@
                 return;
             }
 
-            lossEntries.push({ reason, time });
+            let remarks = "";
+
+            if (reason === "Setup Time") {
+
+                const part = document.getElementById("setupPartSelect").value;
+                const op = document.getElementById("setupOpSelect").value;
+                const machine = document.getElementById("setupMachineSelect").value;
+
+                if (!part || !op || !machine) {
+                    alert("Please select Part, Operation and Machine for Setup Time.");
+                    return;
+                }
+
+                remarks = `${part}, ${op}, ${machine}`;
+            }
+
+            lossEntries.push({ reason, time, remarks });
             renderLossTable();
 
             document.getElementById("lossTimeInput").value = "";
@@ -251,6 +262,7 @@
                         <td>${i + 1}</td>
                         <td>${e.reason}</td>
                         <td>${e.time}</td>
+                        <td>${e.remarks || ""}</td>
                         <td>
                             <button class="action-delete"
                                     onclick="lossEntries.splice(${i},1);
@@ -419,6 +431,55 @@
             });
 
             opSelect.value = "";
+        }
+
+        function updateSetupOps() {
+
+            const part = document.getElementById("setupPartSelect").value;
+            const opSelect = document.getElementById("setupOpSelect");
+
+            opSelect.innerHTML = '<option value="">Select</option>';
+
+            if (!part || !partOps[part]) return;
+
+            partOps[part].forEach(item => {
+
+                const opt = document.createElement("option");
+                opt.value = item.op;
+                opt.dataset.machineType = item.machine_type;
+                opt.textContent = item.op;
+
+                opSelect.appendChild(opt);
+            });
+        }
+
+        function updateSetupMachines() {
+
+            const opSelect = document.getElementById("setupOpSelect");
+            const selectedOp = opSelect.options[opSelect.selectedIndex];
+
+            const machineType = selectedOp?.dataset?.machineType;
+
+            const machineSelect = document.getElementById("setupMachineSelect");
+
+            machineSelect.innerHTML = '<option value="">Select</option>';
+
+            if (!machineType) return;
+
+            Object.entries(machineTypes).forEach(([machineNo, mType]) => {
+
+                if (mType === machineType) {
+
+                    const opt = document.createElement("option");
+                    opt.value = machineNo;
+                    opt.textContent = machineNo;
+
+                    machineSelect.appendChild(opt);
+
+                }
+
+            });
+
         }
 
         function renumberOther() {
@@ -874,6 +935,35 @@
                     </select>
                 </div>
 
+                <!-- SETUP DETAILS (ONLY FOR SETUP TIME) -->
+                <div id="setupSection" style="display:none;" class="v-gap-md">
+
+                    <h4>🔧 Setup Details</h4>
+
+                    <div class="form-row">
+
+                        <label>Part No.</label>
+                        <select id="setupPartSelect" onchange="updateSetupOps()">
+                            <option value="">Select</option>
+                            {% for p in parts %}
+                            <option value="{{ p }}">{{ p }}</option>
+                            {% endfor %}
+                        </select>
+
+                        <label>Operation No.</label>
+                        <select id="setupOpSelect" onchange="updateSetupMachines()">
+                            <option value="">Select</option>
+                        </select>
+
+                        <label>Machine No.</label>
+                        <select id="setupMachineSelect">
+                            <option value="">Select</option>
+                        </select>
+
+                    </div>
+
+                </div>
+
                 <!-- LOSS INPUT -->
                 <div id="lossInputSection" style="display:none;" class="v-gap-md">
 
@@ -891,6 +981,7 @@
                                 <th>Sr. No.</th>
                                 <th>Reason For Pending Time</th>
                                 <th>Time Lost (mins.)</th>
+                                <th>Remarks</th>                                
                                 <th></th>
                             </tr>
                         </thead>

@@ -1286,7 +1286,8 @@ def save_production_entry():
                 "OT": ot,
                 "Machine": main_machine,
                 "Loss_Reason": r.get("reason"),
-                "Time_Min": r.get("time")
+                "Time_Min": r.get("time"),
+                "Remarks": r.get("remarks") or ""
             }
             for r in loss_data
         ])
@@ -2959,6 +2960,9 @@ def reports_loss():
     LOSS_FILE = "data/production_loss.csv"
 
     selected_month = request.args.get("month", "").strip()
+    selected_machine = request.args.get("machine", "").strip()
+    selected_reason = request.args.get("reason", "").strip()
+
     if not selected_month:
         selected_month = datetime.today().strftime("%m")
 
@@ -2977,50 +2981,55 @@ def reports_loss():
         {"value": "12", "label": "December"},
     ]
 
-    # 🔵 DEFAULT EMPTY STRUCTURE
-    empty_response = render_template(
-        "reports_loss.html",
-        active_report="loss",
-        loss_data=[],
-        total_minutes=0,
-        total_hours=0,
-        selected_month=selected_month,
-        months=months,
-        loss_table=[]  # 🔵 NEW
-    )
-
+    # ---------- LOAD DATA ----------
     if not os.path.exists(LOSS_FILE) or os.path.getsize(LOSS_FILE) == 0:
-        return empty_response
+        return render_template(
+            "reports_loss.html",
+            active_report="loss",
+            loss_data=[],
+            total_minutes=0,
+            total_hours=0,
+            selected_month=selected_month,
+            months=months,
+            loss_table=[],
+            machines=[],
+            reasons=[],
+            selected_machine=selected_machine,
+            selected_reason=selected_reason
+        )
 
     df = pd.read_csv(LOSS_FILE)
 
-    if df.empty:
-        return empty_response
+    # remove accidental spaces from column names
+    df.columns = df.columns.str.strip()
+
+    # Ensure Remarks column exists
+    if "Remarks" not in df.columns:
+        df["Remarks"] = ""
 
     # ---------- NORMALIZE ----------
     df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
     df["Time_Min"] = pd.to_numeric(df["Time_Min"], errors="coerce").fillna(0)
     df["Loss_Reason"] = df["Loss_Reason"].astype(str)
     df["Machine"] = df["Machine"].astype(str)
+    df["Remarks"] = df["Remarks"].fillna("")
 
     # ---------- MONTH FILTER ----------
     if selected_month != "all":
         df = df[df["Date"].dt.month == int(selected_month)]
 
-    if df.empty:
-        return empty_response
+    # Machine / reason lists must come BEFORE filtering table
+    machines = sorted(df["Machine"].dropna().unique().tolist())
+    reasons = sorted(df["Loss_Reason"].dropna().unique().tolist())
 
-    # ---------- AGGREGATE (PIE) ----------
+    # ---------- PIE DATA ----------
     summary = (
         df.groupby("Loss_Reason", as_index=False)
         .agg(Total_Time=("Time_Min", "sum"))
     )
 
     loss_data = [
-        {
-            "label": row["Loss_Reason"],
-            "value": float(row["Total_Time"])
-        }
+        {"label": row["Loss_Reason"], "value": float(row["Total_Time"])}
         for _, row in summary.iterrows()
         if row["Total_Time"] > 0
     ]
@@ -3028,8 +3037,14 @@ def reports_loss():
     total_minutes = int(summary["Total_Time"].sum())
     total_hours = round(total_minutes / 60, 2)
 
-    # 🔵 ---------- DETAILED TABLE ----------
+    # ---------- TABLE DATA ----------
     detail_df = df.copy()
+
+    if selected_machine:
+        detail_df = detail_df[detail_df["Machine"] == selected_machine]
+
+    if selected_reason:
+        detail_df = detail_df[detail_df["Loss_Reason"] == selected_reason]
 
     detail_df["Date_Display"] = detail_df["Date"].dt.strftime("%d-%m-%Y")
 
@@ -3042,7 +3057,8 @@ def reports_loss():
         "Date_Display",
         "Machine",
         "Time_Min",
-        "Loss_Reason"
+        "Loss_Reason",
+        "Remarks"
     ]].copy()
 
     loss_table.rename(columns={
@@ -3059,7 +3075,11 @@ def reports_loss():
         total_hours=total_hours,
         selected_month=selected_month,
         months=months,
-        loss_table=loss_table.to_dict(orient="records")  # 🔵 NEW
+        loss_table=loss_table.to_dict(orient="records"),
+        machines=machines,
+        reasons=reasons,
+        selected_machine=selected_machine,
+        selected_reason=selected_reason
     )
 
 # =====================================================

@@ -66,9 +66,9 @@
             <th>Operator Name</th>
             <th>Total Time (mins.)</th>
             <th>Actual Produced Qty.</th>
-            <th>Expected Qty.</th>
-            <th>Productivity (%)</th>
+            <th>Expected Qty.</th>            
             <th>Quality (%)</th>
+            <th>Productivity (%)</th>
         </tr>
     </thead>
     <tbody>
@@ -79,18 +79,6 @@
             <td>{{ r["Actual_Qty"] }}</td>
             <td>{{ r["Expected_Qty"] | int }}</td>
             <td class="
-                {% if r['Productivity_%'] > 95 %}
-                    prod-green
-                {% elif r['Productivity_%'] >= 80 %}
-                    prod-yellow
-                {% else %}
-                    prod-red
-                {% endif %}
-            ">
-                <b>{{ r["Productivity_%"] }} %</b>
-            </td>
-
-            <td class="
                 {% if r['Quality_%'] > 98 %}
                     prod-green
                 {% elif r['Quality_%'] >= 95 %}
@@ -100,6 +88,18 @@
                 {% endif %}
             ">
                 <b>{{ r["Quality_%"] }} %</b>
+            </td>
+            
+            <td class="
+                {% if r['Productivity_%'] > 95 %}
+                    prod-green
+                {% elif r['Productivity_%'] >= 80 %}
+                    prod-yellow
+                {% else %}
+                    prod-red
+                {% endif %}
+            ">
+                <b>{{ r["Productivity_%"] }} %</b>
             </td>
         </tr>
         {% endfor %}

@@ -127,6 +127,44 @@
 
     <h3 style="margin-bottom:12px;">📋 Detailed Loss Records</h3>
 
+    <!-- TABLE FILTER CARD -->
+    <div class="form-card" style="margin-top:25px;">
+
+        <h3 style="margin-bottom:10px;">🔎 Table Filters</h3>
+
+        <form method="get" class="form-row">
+
+            <!-- Keep Month Selection -->
+            <input type="hidden" name="month" value="{{ selected_month }}">
+
+            <label>Machine</label>
+            <select name="machine">
+                <option value="">All</option>
+                {% for m in machines %}
+                <option value="{{ m }}"
+                {% if selected_machine == m %}selected{% endif %}>
+                    {{ m }}
+                </option>
+                {% endfor %}
+            </select>
+
+            <label>Reason</label>
+            <select name="reason">
+                <option value="">All</option>
+                {% for r in reasons %}
+                <option value="{{ r }}"
+                {% if selected_reason == r %}selected{% endif %}>
+                    {{ r }}
+                </option>
+                {% endfor %}
+            </select>
+
+            <button class="action-save">🔍 Apply</button>
+
+        </form>
+
+    </div>
+
     <div class="table-container">
         <table class="modern-table">
             <thead>
@@ -135,6 +173,7 @@
                     <th>Machine No.</th>
                     <th>Loss (mins.)</th>
                     <th>Reason</th>
+                    <th>Remarks</th>
                 </tr>
             </thead>
             <tbody>
@@ -144,6 +183,7 @@
                     <td>{{ row.Machine }}</td>
                     <td><b>{{ row.Loss_Min }}</b></td>
                     <td>{{ row.Reason }}</td>
+                    <td>{{ row.Remarks }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
