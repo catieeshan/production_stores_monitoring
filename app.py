@@ -33,7 +33,7 @@ def auto_restore_from_drive():
     if not os.path.exists(DATA_FOLDER):
         restore_needed = True
     else:
-        prod_file = os.path.join(DATA_FOLDER, "production_main.csv")
+        prod_file = os.path.join(DATA_FOLDER, "part_master.csv")
 
         if not os.path.exists(prod_file):
             restore_needed = True
@@ -78,20 +78,36 @@ def auto_restore_from_drive():
         print("🟢 Backup folder found")
 
         # ---------- GET LATEST BACKUP ----------
-        results = service.files().list(
-            q=f"'{folder_id}' in parents and name contains 'backup_'",
-            fields="files(id, name, createdTime)",
-            orderBy="createdTime desc",
-            supportsAllDrives=True,
-            includeItemsFromAllDrives=True
-        ).execute()
+        files = []
+        page_token = None
 
-        files = results.get('files', [])
+        while True:
+
+            results = service.files().list(
+                q=f"'{folder_id}' in parents and name contains 'backup_' and trashed=false",
+                fields="nextPageToken, files(id, name, createdTime)",
+                orderBy="createdTime desc",
+                supportsAllDrives=True,
+                includeItemsFromAllDrives=True,
+                pageSize=200,
+                pageToken=page_token
+            ).execute()
+
+            files.extend(results.get("files", []))
+            page_token = results.get("nextPageToken")
+
+            if not page_token:
+                break
         if not files:
             print("❌ No backup ZIP found")
             return
 
         latest = files[0]
+
+        if not latest["name"].endswith(".zip"):
+            print("❌ Latest backup is not ZIP")
+            return
+
         print("🟢 Restoring from:", latest["name"])
 
         # ---------- DOWNLOAD ZIP ----------
@@ -230,7 +246,7 @@ def backup_to_drive():
 
         print("🟢 Google auth created")
 
-        service = build('drive', 'v3', credentials=creds)
+        service = build('drive', 'v3', credentials=creds, cache_discovery=False)
         print("🟢 Drive service built")
 
         # -------- FIND FOLDER --------
@@ -294,20 +310,30 @@ def backup_to_drive():
             print("🔥 RETENTION ENGINE RUNNING")
             print("🔵 Checking old backups for cleanup...")
 
-            results = service.files().list(
-                q=f"'{folder_id}' in parents and name contains 'backup_'",
-                fields="files(id, name, createdTime)",
-                orderBy="createdTime desc",
-                supportsAllDrives=True,
-                includeItemsFromAllDrives=True,
-                pageSize=200
-            ).execute()
+            files = []
+            page_token = None
 
-            files = results.get("files", [])
+            while True:
+
+                results = service.files().list(
+                    q=f"'{folder_id}' in parents and name contains 'backup_' and trashed=false",
+                    fields="nextPageToken, files(id, name, createdTime)",
+                    orderBy="createdTime desc",
+                    supportsAllDrives=True,
+                    includeItemsFromAllDrives=True,
+                    pageSize=200,
+                    pageToken=page_token
+                ).execute()
+
+                files.extend(results.get("files", []))
+                page_token = results.get("nextPageToken")
+
+                if not page_token:
+                    break
             print(f"🔵 Total backups found: {len(files)}")
 
             KEEP_LIMIT = 30
-            DELETE_BATCH = min(100, len(files) - KEEP_LIMIT)
+            DELETE_BATCH = 25
 
             if len(files) > KEEP_LIMIT:
 
@@ -327,8 +353,7 @@ def backup_to_drive():
 
                         deleted += 1
 
-                    except Exception as del_err:
-                        print("⚠ Skip delete error:", f["name"], str(del_err))
+                    except Exception:
                         continue
 
                 print(f"🟢 Deleted {deleted} old backups this cycle")
