@@ -3022,7 +3022,7 @@ def reports_loss():
             selected_reason=selected_reason
         )
 
-    df = pd.read_csv(LOSS_FILE)
+    df = pd.read_csv(LOSS_FILE, engine="python")
 
     # remove accidental spaces from column names
     df.columns = df.columns.str.strip()
