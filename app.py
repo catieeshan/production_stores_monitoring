@@ -307,7 +307,7 @@ def backup_to_drive():
             print(f"🔵 Total backups found: {len(files)}")
 
             KEEP_LIMIT = 30
-            DELETE_BATCH = 10   # 🔥 IMPORTANT: delete only 10 per run
+            DELETE_BATCH = min(100, len(files) - KEEP_LIMIT)
 
             if len(files) > KEEP_LIMIT:
 
