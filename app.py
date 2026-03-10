@@ -344,14 +344,13 @@ def backup_to_drive():
 
                 for f in delete_now:
                     try:
-                        print("🗑 Deleting old backup:", f["name"])
+                        print("🗑 Archiving old backup:", f["name"])
 
-                        service.files().delete(
+                        service.files().update(
                             fileId=f["id"],
+                            body={"trashed": True},
                             supportsAllDrives=True
                         ).execute()
-
-                        deleted += 1
 
                     except Exception:
                         continue
