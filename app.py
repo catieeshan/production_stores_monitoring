@@ -152,33 +152,43 @@ def repair_loss_csv():
 
     LOSS_FILE = "data/production_loss.csv"
 
-    if not os.path.exists(LOSS_FILE):
-        return
+    try:
 
-    repaired_rows = []
+        if not os.path.exists(LOSS_FILE):
+            print("ℹ️ Loss CSV not found, skipping repair")
+            return
 
-    with open(LOSS_FILE, "r", encoding="utf-8", newline="") as f:
-        reader = csv.reader(f)
+        if os.path.getsize(LOSS_FILE) == 0:
+            print("ℹ️ Loss CSV empty, skipping repair")
+            return
 
-        for i, row in enumerate(reader):
+        repaired_rows = []
 
-            # Keep header untouched
-            if i == 0:
+        with open(LOSS_FILE, "r", encoding="utf-8", newline="") as f:
+            reader = csv.reader(f)
+
+            for i, row in enumerate(reader):
+
+                # Keep header untouched
+                if i == 0:
+                    repaired_rows.append(row)
+                    continue
+
+                # Fix rows with extra columns
+                if len(row) > 8:
+                    remarks = ",".join(row[7:])
+                    row = row[:7] + [remarks]
+
                 repaired_rows.append(row)
-                continue
 
-            # Expected 8 columns
-            if len(row) > 8:
-                remarks = ",".join(row[7:])
-                row = row[:7] + [remarks]
+        with open(LOSS_FILE, "w", encoding="utf-8", newline="") as f:
+            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+            writer.writerows(repaired_rows)
 
-            repaired_rows.append(row)
+        print("🟢 LOSS CSV REPAIRED")
 
-    with open(LOSS_FILE, "w", encoding="utf-8", newline="") as f:
-        writer = csv.writer(f, quoting=csv.QUOTE_ALL)
-        writer.writerows(repaired_rows)
-
-    print("🟢 LOSS CSV REPAIRED")
+    except Exception as e:
+        print("⚠️ LOSS CSV REPAIR FAILED:", e)
 
 # =========================================
 # APP CONFIG
