@@ -143,6 +143,56 @@ def auto_restore_from_drive():
         print("🔴 AUTO RESTORE FAILED:", str(e))
 
 # =========================================
+# REPAIR CORRUPTED LOSS CSV (RUN ONCE)
+# =========================================
+def repair_loss_csv():
+
+    import os
+
+    LOSS_FILE = "data/production_loss.csv"
+
+    if not os.path.exists(LOSS_FILE):
+        return
+
+    repaired = []
+
+    with open(LOSS_FILE, "r", encoding="utf-8") as f:
+        for i, line in enumerate(f):
+
+            parts = line.strip().split(",")
+
+            # First row = header → force correct header
+            if i == 0:
+                repaired.append([
+                    "Date",
+                    "Operator",
+                    "Shift",
+                    "OT",
+                    "Machine",
+                    "Loss_Reason",
+                    "Time_Min",
+                    "Remarks"
+                ])
+                continue
+
+            # Fix rows with extra commas
+            if len(parts) > 8:
+                remarks = ",".join(parts[7:])
+                parts = parts[:7] + [remarks]
+
+            # Fix rows with missing remarks
+            if len(parts) == 7:
+                parts.append("")
+
+            repaired.append(parts)
+
+    with open(LOSS_FILE, "w", encoding="utf-8") as f:
+        for row in repaired:
+            f.write(",".join(row) + "\n")
+
+    print("🟢 LOSS CSV REPAIRED")
+
+# =========================================
 # APP CONFIG
 # =========================================
 
@@ -155,6 +205,11 @@ try:
     auto_restore_from_drive()
 except Exception as e:
     print("Startup restore error:", e)
+
+try:
+    repair_loss_csv()
+except Exception as e:
+    print("Startup repair error:", e)
 
 DATA_FOLDER = "data"
 UPLOAD_FOLDER = "uploads"
@@ -1318,6 +1373,7 @@ def save_production_entry():
 
         path = "data/production_loss.csv"
         write_header = not os.path.exists(path) or os.path.getsize(path) == 0
+
         import csv
 
         df_loss.to_csv(
@@ -1325,7 +1381,7 @@ def save_production_entry():
             mode="a",
             index=False,
             header=write_header,
-            quoting=csv.QUOTE_MINIMAL
+            quoting=csv.QUOTE_ALL
         )
 
     # -----------------------------
