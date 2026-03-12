@@ -147,43 +147,38 @@ def auto_restore_from_drive():
 # =========================================
 def repair_loss_csv():
 
-    import csv
+    import pandas as pd
     import os
 
     LOSS_FILE = "data/production_loss.csv"
 
+    if not os.path.exists(LOSS_FILE):
+        print("ℹ️ Loss CSV not found")
+        return
+
+    if os.path.getsize(LOSS_FILE) == 0:
+        print("ℹ️ Loss CSV empty")
+        return
+
     try:
 
-        if not os.path.exists(LOSS_FILE):
-            print("ℹ️ Loss CSV not found, skipping repair")
-            return
+        rows = []
 
-        if os.path.getsize(LOSS_FILE) == 0:
-            print("ℹ️ Loss CSV empty, skipping repair")
-            return
+        with open(LOSS_FILE, "r", encoding="utf-8") as f:
+            for line in f:
 
-        repaired_rows = []
+                parts = line.strip().split(",")
 
-        with open(LOSS_FILE, "r", encoding="utf-8", newline="") as f:
-            reader = csv.reader(f)
+                # expected structure
+                if len(parts) > 8:
+                    remarks = ",".join(parts[7:])
+                    parts = parts[:7] + [remarks]
 
-            for i, row in enumerate(reader):
+                rows.append(parts)
 
-                # Keep header untouched
-                if i == 0:
-                    repaired_rows.append(row)
-                    continue
+        df = pd.DataFrame(rows[1:], columns=rows[0])
 
-                # Fix rows with extra columns
-                if len(row) > 8:
-                    remarks = ",".join(row[7:])
-                    row = row[:7] + [remarks]
-
-                repaired_rows.append(row)
-
-        with open(LOSS_FILE, "w", encoding="utf-8", newline="") as f:
-            writer = csv.writer(f, quoting=csv.QUOTE_ALL)
-            writer.writerows(repaired_rows)
+        df.to_csv(LOSS_FILE, index=False)
 
         print("🟢 LOSS CSV REPAIRED")
 
@@ -1378,7 +1373,7 @@ def save_production_entry():
             mode="a",
             index=False,
             header=write_header,
-            quoting=csv.QUOTE_ALL
+            quoting=csv.QUOTE_MINIMAL
         )
 
     # -----------------------------
