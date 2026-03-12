@@ -147,43 +147,50 @@ def auto_restore_from_drive():
 # =========================================
 def repair_loss_csv():
 
-    import pandas as pd
     import os
 
     LOSS_FILE = "data/production_loss.csv"
 
     if not os.path.exists(LOSS_FILE):
-        print("ℹ️ Loss CSV not found")
         return
 
-    if os.path.getsize(LOSS_FILE) == 0:
-        print("ℹ️ Loss CSV empty")
-        return
+    repaired = []
 
-    try:
+    with open(LOSS_FILE, "r", encoding="utf-8") as f:
+        for i, line in enumerate(f):
 
-        rows = []
+            parts = line.strip().split(",")
 
-        with open(LOSS_FILE, "r", encoding="utf-8") as f:
-            for line in f:
+            # First row = header → force correct header
+            if i == 0:
+                repaired.append([
+                    "Date",
+                    "Operator",
+                    "Shift",
+                    "OT",
+                    "Machine",
+                    "Loss_Reason",
+                    "Time_Min",
+                    "Remarks"
+                ])
+                continue
 
-                parts = line.strip().split(",")
+            # Fix rows with extra commas
+            if len(parts) > 8:
+                remarks = ",".join(parts[7:])
+                parts = parts[:7] + [remarks]
 
-                # expected structure
-                if len(parts) > 8:
-                    remarks = ",".join(parts[7:])
-                    parts = parts[:7] + [remarks]
+            # Fix rows with missing remarks
+            if len(parts) == 7:
+                parts.append("")
 
-                rows.append(parts)
+            repaired.append(parts)
 
-        df = pd.DataFrame(rows[1:], columns=rows[0])
+    with open(LOSS_FILE, "w", encoding="utf-8") as f:
+        for row in repaired:
+            f.write(",".join(row) + "\n")
 
-        df.to_csv(LOSS_FILE, index=False)
-
-        print("🟢 LOSS CSV REPAIRED")
-
-    except Exception as e:
-        print("⚠️ LOSS CSV REPAIR FAILED:", e)
+    print("🟢 LOSS CSV REPAIRED")
 
 # =========================================
 # APP CONFIG
